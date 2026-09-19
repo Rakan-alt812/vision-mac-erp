@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: vision-mac-erp
+    runtime: node
+    buildCommand: echo "No build needed"
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_VERSION
+        value: 22.5.0

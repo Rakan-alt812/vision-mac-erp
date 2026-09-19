@@ -1,0 +1,5 @@
+erp.db
+*.db
+server.log
+node_modules/
+.env
