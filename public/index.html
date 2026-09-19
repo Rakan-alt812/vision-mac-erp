@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VISION — MAC · نظام المقاولات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+ --ink:#14181C;--ink2:#4A5560;--ink3:#8A949E;
+ --steel:#1E2A33;--steel2:#2A3842;--steel3:#3C4C58;
+ --paper:#FBFAF8;--card:#fff;--rule:#E4E2DD;--rule2:#CFCCC5;
+ --go:#0F7A5A;--gobg:#E6F2EE;--stop:#B03A34;--stopbg:#FAEDEC;
+ --hold:#9A6510;--holdbg:#FBF1DF;--blue:#1F5D96;--bluebg:#E8F0F7;
+ --r:6px
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;background:var(--paper);color:var(--ink);font-size:14px;line-height:1.55}
+button,input,select,textarea{font-family:inherit;font-size:inherit}
+button{cursor:pointer}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* login */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--steel)}
+.lcard{background:var(--card);border-radius:10px;padding:30px;width:340px}
+.lcard h1{font-size:19px;font-weight:600;margin-bottom:3px}
+.lcard p{font-size:12px;color:var(--ink3);margin-bottom:20px}
+.lcard input{width:100%;padding:10px 12px;border:1px solid var(--rule2);border-radius:var(--r);margin-bottom:11px}
+.lcard input:focus{outline:none;border-color:var(--go);box-shadow:0 0 0 3px var(--gobg)}
+.lerr{background:var(--stopbg);color:var(--stop);padding:8px 11px;border-radius:var(--r);font-size:12px;margin-bottom:11px;display:none}
+.demo{margin-top:16px;padding-top:14px;border-top:1px solid var(--rule);font-size:11px;color:var(--ink3);line-height:1.9}
+.demo b{color:var(--ink2);font-weight:500;cursor:pointer}
+.demo b:hover{color:var(--go);text-decoration:underline}
+
+/* shell */
+#app{display:none;min-height:100vh}
+#side{width:214px;background:var(--steel);color:#C9D3DB;position:fixed;top:0;bottom:0;right:0;overflow-y:auto;display:flex;flex-direction:column}
+#main{margin-right:214px;min-width:0}
+.brand{padding:16px 15px 13px;border-bottom:1px solid var(--steel3)}
+.brand h1{font-size:14px;font-weight:600;color:#fff}
+.brand p{font-size:11px;color:#7E8D99;margin-top:2px}
+.nav{padding:9px 7px;flex:1}
+.nh{font-size:10px;color:#6B7A86;padding:11px 9px 4px}
+.nav button{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:var(--r);color:#C9D3DB;font-size:13px;width:100%;text-align:right;background:none;border:none;margin-bottom:1px}
+.nav button:hover{background:var(--steel2);color:#fff}
+.nav button.on{background:var(--steel3);color:#fff;font-weight:500}
+.nav .ic{width:16px;text-align:center;opacity:.85}
+.sf{padding:11px 14px;border-top:1px solid var(--steel3);font-size:11px;color:#6B7A86}
+.sf b{display:block;color:#C9D3DB;font-weight:500}
+
+#top{background:var(--card);border-bottom:1px solid var(--rule);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+#top h2{font-size:17px;font-weight:600}
+#top .sub{font-size:12px;color:var(--ink3);margin-top:1px}
+#view{padding:18px 22px 60px}
+
+.btn{padding:6px 13px;border-radius:var(--r);border:1px solid var(--rule2);background:var(--card);color:var(--ink);font-size:13px}
+.btn:hover{background:var(--paper);border-color:var(--ink3)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.bgo{background:var(--go);border-color:var(--go);color:#fff;font-weight:500}
+.bgo:hover{background:#0B6349;border-color:#0B6349}
+.bstop{background:var(--stopbg);border-color:#EBC9C6;color:var(--stop)}
+.bs{padding:3px 9px;font-size:12px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:11px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px}
+.kpi .k{font-size:11px;color:var(--ink3);margin-bottom:4px}
+.kpi .v{font-size:23px;font-weight:600;letter-spacing:-.3px}
+.kpi .n{font-size:11px;color:var(--ink2);margin-top:2px}
+.kpi.acc{border-right:3px solid var(--go)}.kpi.warn{border-right:3px solid var(--hold)}.kpi.bad{border-right:3px solid var(--stop)}
+
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.ph{padding:10px 14px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between}
+.ph h3{font-size:14px;font-weight:600}
+.pb{padding:14px}
+.tools{display:flex;gap:7px;padding:10px 14px;border-bottom:1px solid var(--rule);flex-wrap:wrap;align-items:center}
+.tools input,.tools select{padding:5px 9px;border:1px solid var(--rule2);border-radius:var(--r);background:var(--card);color:var(--ink)}
+.sp{margin-right:auto}
+
+table{width:100%;border-collapse:collapse}
+th{background:var(--paper);text-align:right;padding:8px 11px;font-size:11px;font-weight:500;color:var(--ink2);border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:8px 11px;border-bottom:1px solid var(--rule)}
+tbody tr:hover{background:var(--paper)}
+tbody tr:last-child td{border-bottom:none}
+tfoot td{background:var(--paper);font-weight:600;border-top:1px solid var(--rule2)}
+.empty{padding:40px 20px;text-align:center;color:var(--ink3)}
+.empty b{display:block;color:var(--ink);font-weight:500;margin-bottom:4px;font-size:15px}
+
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.tgo{background:var(--gobg);color:var(--go)}.tstop{background:var(--stopbg);color:var(--stop)}
+.thold{background:var(--holdbg);color:var(--hold)}.tblue{background:var(--bluebg);color:var(--blue)}
+.tgray{background:#EFEDE9;color:var(--ink2)}
+.bar{height:5px;background:var(--rule);border-radius:3px;overflow:hidden;min-width:56px}
+.bar i{display:block;height:100%;border-radius:3px}
+
+#veil{position:fixed;inset:0;background:rgba(20,24,28,.45);display:none;align-items:flex-start;justify-content:center;z-index:100;overflow-y:auto;padding:32px 14px}
+#veil.on{display:flex}
+.modal{background:var(--card);border-radius:8px;width:100%;max-width:660px}
+.mh{padding:14px 18px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center}
+.mh h3{font-size:16px;font-weight:600}
+.mb{padding:18px;max-height:65vh;overflow-y:auto}
+.mf{padding:12px 18px;border-top:1px solid var(--rule);display:flex;gap:7px;background:var(--paper)}
+.x{background:none;border:none;font-size:20px;color:var(--ink3);padding:0 6px;border-radius:4px}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:12px;color:var(--ink2);margin-bottom:4px}
+.fg input,.fg select,.fg textarea{width:100%;padding:7px 10px;border:1px solid var(--rule2);border-radius:var(--r);background:var(--card);color:var(--ink)}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--go);box-shadow:0 0 0 3px var(--gobg)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 12px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.calc{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:11px 13px;margin-bottom:12px}
+.cr{display:flex;justify-content:space-between;padding:3px 0;font-size:13px}
+.cr.t{border-top:1px solid var(--rule2);margin-top:5px;padding-top:7px;font-weight:600;font-size:15px}
+#toast{position:fixed;bottom:20px;right:20px;background:var(--steel);color:#fff;padding:10px 17px;border-radius:var(--r);font-size:13px;z-index:200;opacity:0;transform:translateY(8px);transition:.18s;pointer-events:none;max-width:400px}
+#toast.on{opacity:1;transform:none}
+#toast.err{background:var(--stop)}
+.mono{font-family:ui-monospace,monospace;font-size:11px;word-break:break-all;background:var(--paper);padding:8px 10px;border-radius:var(--r);border:1px solid var(--rule)}
+.note{background:var(--holdbg);color:#6B4708;padding:9px 12px;border-radius:var(--r);font-size:12px;margin-bottom:12px}
+@media(max-width:900px){
+ #side{position:static;width:100%}#main{margin-right:0}#app{display:block}
+ .nav{display:flex;flex-wrap:wrap}.nh,.sf,.brand p{display:none}.nav button{width:auto}
+ .split,.f2,.f3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form class="lcard" onsubmit="doLogin(event)">
+    <h1>VISION — MAC</h1>
+    <p>نظام إدارة المقاولات</p>
+    <div class="lerr" id="lerr"></div>
+    <div class="lerr" id="lfile" style="display:none;background:var(--holdbg);color:#6B4708">
+      يبدو أنك فتحت الملف مباشرة من القرص.<br>
+      شغّل <b style="font-family:ui-monospace,monospace">node server.js</b> ثم افتح
+      <b style="font-family:ui-monospace,monospace">http://localhost:3000</b>
+    </div>
+    <input id="u" placeholder="اسم المستخدم" autocomplete="username" required>
+    <input id="p" type="password" placeholder="كلمة المرور" autocomplete="current-password" required>
+    <button class="btn bgo" style="width:100%;padding:10px" type="submit">دخول</button>
+    <div class="demo">
+      حسابات للتجربة — اضغط لتعبئتها:<br>
+      <b onclick="fill('admin','admin123')">admin</b> المالك ·
+      <b onclick="fill('ahmad','pm123')">ahmad</b> مدير مشاريع ·
+      <b onclick="fill('saad','eng123')">saad</b> مهندس<br>
+      <b onclick="fill('noura','acc123')">noura</b> محاسب ·
+      <b onclick="fill('fahad','store123')">fahad</b> مستودع ·
+      <b onclick="fill('mai','hr123')">mai</b> موارد بشرية
+      <div style="margin-top:8px;color:#9A6510">سيطلب النظام تغيير كلمة المرور عند أول دخول.</div>
+    </div>
+  </form>
+</div>
+
+<div id="pwgate" style="display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--steel)">
+  <form class="lcard" onsubmit="doChange(event,true)">
+    <h1>غيّر كلمة المرور</h1>
+    <p>كلمة المرور الحالية افتراضية ومعروفة — لا يمكن المتابعة قبل تغييرها.</p>
+    <div class="lerr" id="perr"></div>
+    <input id="pc" type="password" placeholder="كلمة المرور الحالية" autocomplete="current-password" required>
+    <input id="pn" type="password" placeholder="كلمة المرور الجديدة" autocomplete="new-password" required>
+    <input id="pn2" type="password" placeholder="أعد كتابة الجديدة" autocomplete="new-password" required>
+    <div style="font-size:11px;color:var(--ink3);margin-bottom:11px;line-height:1.8">
+      8 خانات على الأقل · حرف ورقم على الأقل · لا تكون من الكلمات الشائعة
+    </div>
+    <button class="btn bgo" style="width:100%;padding:10px" type="submit">حفظ والمتابعة</button>
+    <div class="demo"><b onclick="logout()">تسجيل الخروج</b></div>
+  </form>
+</div>
+
+<div id="app">
+  <aside id="side">
+    <div class="brand"><h1>VISION — MAC</h1><p>مقاولات MEP · جدة</p></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sf"><b id="uname"></b><span id="urole"></span>
+      <button class="btn bs" style="margin-top:8px;width:100%" onclick="pwForm()">تغيير كلمة المرور</button>
+      <button class="btn bs" style="margin-top:5px;width:100%" onclick="logout()">خروج</button></div>
+  </aside>
+  <main id="main">
+    <header id="top"><div><h2 id="ttl"></h2><div class="sub" id="tsub"></div></div>
+      <div id="tact" style="display:flex;gap:7px"></div></header>
+    <div id="view"></div>
+  </main>
+</div>
+
+<div id="veil"><div class="modal">
+  <div class="mh"><h3 id="mttl"></h3><button class="x" onclick="closeM()">&times;</button></div>
+  <div class="mb" id="mb"></div><div class="mf" id="mf"></div>
+</div></div>
+<div id="toast"></div>
+
+<script>
+let TOK=null, ME=null, PAGE='dash', CACHE={};
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>(Math.round((+n||0)*100)/100).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+const toast=(m,e)=>{const t=$('toast');t.textContent=m;t.className='on'+(e?' err':'');clearTimeout(t._h);t._h=setTimeout(()=>t.className='',3200);};
+
+async function api(p,body){
+  let r;
+  try{
+    r=await fetch('/api/'+p,{
+      method:body?'POST':'GET',
+      headers:{'Content-Type':'application/json',...(TOK?{Authorization:'Bearer '+TOK}:{})},
+      body:body?JSON.stringify(body):undefined});
+  }catch(netErr){
+    // fetch() itself failed — the server was never reached.
+    if(location.protocol==='file:')
+      throw new Error('فتحتَ الملف مباشرة من القرص. أغلق هذه الصفحة، شغّل «node server.js» في مجلد النظام، ثم افتح http://localhost:3000');
+    throw new Error('تعذّر الاتصال بالخادم. تأكد أن «node server.js» يعمل، ثم أعد المحاولة.');
+  }
+  let j;
+  try{ j=await r.json(); }catch(e){ throw new Error('رد غير متوقع من الخادم ('+r.status+')'); }
+  if(!r.ok){ if(r.status===401){TOK=null;localStorage.removeItem('tok');location.reload();} throw new Error(j.error||'خطأ'); }
+  return j;
+}
+function fill(u,p){$('u').value=u;$('p').value=p;}
+
+async function doLogin(e){
+  e.preventDefault();
+  try{
+    const r=await api('login',{username:$('u').value,password:$('p').value});
+    TOK=r.token; localStorage.setItem('tok',TOK); ME=r.user; start();
+  }catch(err){ $('lerr').textContent=err.message; $('lerr').style.display='block'; }
+}
+async function logout(){ try{await api('logout',{});}catch(e){} localStorage.removeItem('tok'); location.reload(); }
+
+const NAV=[
+ {g:'الرئيسية',items:[['dash','لوحة التحكم','▲']]},
+ {g:'المبيعات',items:[['pipeline','خط الأنابيب','◱'],['quotes','عروض الأسعار','◰'],['customers','العملاء','◎'],['invoices','الفواتير','▣']]},
+ {g:'المشاريع',items:[['projects','المشاريع','◈'],['tasks','المهام والجدول','☰'],['daily','التقرير اليومي','◷'],['timesheets','ساعات العمل','◐']]},
+ {g:'المشتريات',items:[['vendors','الموردون','▤'],['matreqs','طلبات المواد','◲'],['pos','أوامر الشراء','▥'],['stock','المخزون','▦']]},
+ {g:'الموارد البشرية',items:[['employees','الموظفون','◉'],['payroll','الرواتب','▧']]},
+ {g:'المحاسبة',items:[['journals','القيود اليومية','≡'],['reports','التقارير المالية','∑'],['audit','سجل التدقيق','◷']]},
+];
+
+function renderNav(){
+  let h='';
+  NAV.forEach(g=>{
+    const items=g.items.filter(([k])=>allowed(k));
+    if(!items.length)return;
+    h+='<div class="nh">'+g.g+'</div>';
+    items.forEach(([k,l,ic])=>h+=`<button class="${PAGE===k?'on':''}" onclick="go('${k}')"><span class="ic">${ic}</span>${l}</button>`);
+  });
+  $('nav').innerHTML=h;
+}
+function allowed(k){
+  const r=ME.role;
+  if(r==='admin')return true;
+  const deny={
+    engineer:['invoices','vendors','pos','employees','payroll','journals','reports','audit','customers','pipeline','quotes'],
+    storekeeper:['invoices','customers','employees','payroll','journals','reports','audit','pipeline','quotes','daily','timesheets'],
+    hr:['invoices','customers','vendors','pos','stock','journals','reports','audit','projects','pipeline','quotes','tasks','daily','timesheets','matreqs'],
+    pm:['payroll','audit'],
+    accountant:['payroll'],
+  };
+  return !(deny[r]||[]).includes(k);
+}
+function go(p){PAGE=p;renderNav();render();}
+
+async function start(){
+  const m=await api('me'); ME=m.user;
+  if(ME.must_change){
+    $('login').style.display='none'; $('app').style.display='none';
+    $('pwgate').style.display='flex';
+    return;
+  }
+  $('login').style.display='none'; $('pwgate').style.display='none'; $('app').style.display='flex';
+  $('uname').textContent=ME.name;
+  $('urole').textContent=({admin:'مدير النظام',pm:'مدير مشاريع',engineer:'مهندس موقع',
+    accountant:'محاسب',storekeeper:'أمين مستودع',hr:'موارد بشرية'})[ME.role];
+  if(!allowed(PAGE))PAGE='dash';
+  renderNav(); render();
+}
+
+async function render(){
+  const V=$('view');
+  V.innerHTML='<div class="empty">جارٍ التحميل…</div>';
+  $('tact').innerHTML='';
+  try{ await PAGES[PAGE](); }
+  catch(e){ V.innerHTML='<div class="panel"><div class="empty"><b>تعذّر العرض</b>'+esc(e.message)+'</div></div>'; }
+}
+function head(t,s){$('ttl').textContent=t;$('tsub').textContent=s||'';}
+function act(h){$('tact').innerHTML=h;}
+
+const PAGES={};
+
+/* ───────── DASHBOARD ───────── */
+PAGES.dash=async()=>{
+  const d=await api('dashboard');
+  head('لوحة التحكم',new Date().toLocaleDateString('ar-SA',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
+  const ar=d.receivables;
+  let h='<div class="kpis">'
+   +kpi('النقد والبنوك',money(d.cash),'رصيد دفتري','acc')
+   +kpi('الذمم المدينة',money(ar.total),ar.buckets.d90p>0?money(ar.buckets.d90p)+' متأخرة +90 يوم':'لا متأخرات',ar.buckets.d90p>0?'bad':'')
+   +kpi('صافي الربح',money(d.pnl.net),'هامش '+d.pnl.margin+'٪',d.pnl.net>0?'acc':'bad')
+   +kpi('ضريبة مستحقة',money(d.vat.due),'مخرجات '+money(d.vat.output_vat),'')
+   +'</div>';
+
+  if(!d.balanced)h+='<div class="note">تحذير: الميزانية غير متوازنة — راجع القيود.</div>';
+
+  h+='<div class="split"><div class="panel"><div class="ph"><h3>المشاريع الجارية</h3></div>';
+  if(!d.projects.length)h+='<div class="empty"><b>لا مشاريع جارية</b>أضف مشروعاً للبدء.</div>';
+  else d.projects.forEach(p=>{
+    h+=`<div style="padding:11px 14px;border-bottom:1px solid var(--rule)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <div><div style="font-weight:500">${esc(p.name)}</div>
+        <div style="font-size:11px;color:var(--ink3)">${esc(p.customer||'')} · ${money(p.value)} ر.س</div></div>
+        ${p.risk?'<span class="tag tstop">الصرف يسبق الإنجاز</span>':''}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+        <span style="font-size:11px;color:var(--ink3);width:40px">الإنجاز</span>
+        <div class="bar" style="flex:1"><i style="width:${p.progress}%;background:var(--go)"></i></div>
+        <span class="num" style="font-size:12px;width:32px">${p.progress}%</span></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--ink3);width:40px">الصرف</span>
+        <div class="bar" style="flex:1"><i style="width:${Math.min(100,p.cost_pct)}%;background:${p.cost_pct>90?'var(--stop)':p.cost_pct>75?'var(--hold)':'var(--ink3)'}"></i></div>
+        <span class="num" style="font-size:12px;width:32px">${Math.round(p.cost_pct)}%</span></div></div>`;
+  });
+  h+='</div><div>';
+
+  h+='<div class="panel"><div class="ph"><h3>يحتاج انتباهك</h3></div>';
+  const al=[];
+  d.pending_approvals.forEach(a=>al.push([`أمر شراء ${a.code} بانتظار الاعتماد`,`${esc(a.vendor)} · ${money(a.amount)} ر.س`,'hold','pos']));
+  d.low_stock.forEach(m=>al.push([`${esc(m.name)} تحت الحد الأدنى`,`متاح ${money(m.qty)} · الحد ${money(m.minq)}`,'stop','stock']));
+  ar.detail.filter(r=>r.age>0).forEach(r=>al.push([`فاتورة ${r.code} متأخرة`,`${esc(r.customer)} · ${money(r.remaining)} ر.س · ${r.age} يوم`,'stop','invoices']));
+  if(!al.length)h+='<div class="empty"><b>لا تنبيهات</b>كل شيء ضمن المسار.</div>';
+  else al.slice(0,8).forEach(([t,s,c,pg])=>h+=`<div style="padding:9px 14px;border-bottom:1px solid var(--rule);display:flex;gap:9px;align-items:center;cursor:pointer" onclick="go('${pg}')">
+    <span style="width:7px;height:7px;border-radius:50%;background:var(--${c});flex-shrink:0"></span>
+    <div><div style="font-size:13px;font-weight:500">${t}</div><div style="font-size:11px;color:var(--ink3)">${s}</div></div></div>`);
+  h+='</div>';
+
+  h+='<div class="panel"><div class="ph"><h3>الملخص المالي</h3></div><div class="pb">'
+   +rw('إجمالي الإيرادات',money(d.pnl.total_income))
+   +rw('إجمالي المصروفات',money(d.pnl.total_expense))
+   +rw('صافي الربح',money(d.pnl.net),'var(--go)')
+   +rw('قيمة المخزون',money(d.stock_value))
+   +rw('ضريبة المخرجات',money(d.vat.output_vat))
+   +rw('ضريبة المدخلات',money(d.vat.input_vat))
+   +'</div></div></div></div>';
+  $('view').innerHTML=h;
+};
+const kpi=(k,v,n,c)=>`<div class="kpi ${c||''}"><div class="k">${k}</div><div class="v num">${v}</div><div class="n">${n}</div></div>`;
+const rw=(l,v,c)=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--rule)"><span style="color:var(--ink2);font-size:13px">${l}</span><span class="num" style="font-weight:500${c?';color:'+c:''}">${v}</span></div>`;
+
+/* ───────── generic table ───────── */
+function tbl(cols,rows,foot){
+  if(!rows.length)return '<div class="empty"><b>لا توجد سجلات</b></div>';
+  let h='<div style="overflow-x:auto"><table><thead><tr>'+cols.map(c=>`<th>${c[0]}</th>`).join('')+'</tr></thead><tbody>';
+  rows.forEach(r=>h+='<tr>'+cols.map(c=>`<td>${c[1](r)}</td>`).join('')+'</tr>');
+  h+='</tbody>'+(foot||'')+'</table></div>';
+  return h;
+}
+
+/* ───────── PARTNERS ───────── */
+PAGES.customers=()=>partnerPage('customer','العملاء','عميل');
+PAGES.vendors=()=>partnerPage('vendor','الموردون','مورد');
+async function partnerPage(kind,title,single){
+  const rows=await api(kind==='customer'?'customers':'vendors');
+  head(title,rows.length+' سجل');
+  act(`<button class="btn bgo" onclick="partnerForm('${kind}')">+ ${single} جديد</button>`);
+  const cols=[['الاسم',r=>`<strong>${esc(r.name)}</strong>`],
+    ['الرقم الضريبي',r=>`<span class="num">${esc(r.vat||'—')}</span>`],
+    ['جهة التواصل',r=>esc(r.contact||'—')],
+    ['الجوال',r=>`<span class="num">${esc(r.phone||'—')}</span>`],
+    ['شروط الدفع',r=>esc(r.terms||'—')]];
+  if(kind==='vendor'){
+    cols.splice(1,0,['التخصص',r=>`<span class="tag tblue">${esc(r.trade||'—')}</span>`]);
+    cols.push(['التقييم',r=>'<span style="color:var(--hold)">'+'★'.repeat(r.rating||0)+'</span>']);
+    cols.push(['الالتزام',r=>{const p=r.ontime||0;return `<div style="display:flex;gap:6px;align-items:center"><div class="bar"><i style="width:${p}%;background:${p>=95?'var(--go)':p>=85?'var(--hold)':'var(--stop)'}"></i></div><span class="num" style="font-size:12px">${p}%</span></div>`;}]);
+  }
+  cols.push(['',r=>`<button class="btn bs" onclick='partnerForm("${kind}",${JSON.stringify(r)})'>تعديل</button>`]);
+  $('view').innerHTML='<div class="panel">'+tbl(cols,rows)+'</div>';
+}
+function partnerForm(kind,r){
+  r=r||{};
+  openM((r.id?'تعديل ':'إضافة ')+(kind==='customer'?'عميل':'مورد'),`
+   <div class="f2">
+    ${fld('name','الاسم',r.name)}
+    ${fld('vat','الرقم الضريبي',r.vat)}
+    ${fld('contact','جهة التواصل',r.contact)}
+    ${fld('phone','الجوال',r.phone)}
+    ${fld('email','البريد',r.email)}
+    ${fld('city','المدينة',r.city||'جدة')}
+    ${sel('terms','شروط الدفع',['فوري','15 يوم','30 يوم','45 يوم','60 يوم','حسب الإنجاز'],r.terms)}
+    ${kind==='vendor'?sel('trade','التخصص',['كهرباء','ميكانيكا','سباكة','إنذار حريق','عام'],r.trade):''}
+    ${kind==='vendor'?fld('rating','التقييم 1-5',r.rating,'number'):''}
+    ${kind==='vendor'?fld('ontime','الالتزام %',r.ontime,'number'):''}
+   </div>`,
+   async()=>{
+     const d={id:r.id,kind:kind,name:val('name'),vat:val('vat'),contact:val('contact'),
+       phone:val('phone'),email:val('email'),city:val('city'),terms:val('terms'),
+       trade:val('trade'),rating:+val('rating')||null,ontime:+val('ontime')||null};
+     if(!d.name)throw new Error('الاسم مطلوب');
+     await api('partners/save',d); toast('تم الحفظ'); closeM(); render();
+   });
+}
+
+/* ───────── PROJECTS ───────── */
+PAGES.projects=async()=>{
+  const rows=await api('projects');
+  head('المشاريع',rows.length+' مشروع');
+  act('<button class="btn bgo" onclick="projForm()">+ مشروع جديد</button>');
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['المشروع',r=>`<strong>${esc(r.name)}</strong><div class="num" style="font-size:11px;color:var(--ink3)">${esc(r.code)}</div>`],
+    ['العميل',r=>esc(r.customer||'—')],
+    ['التخصص',r=>`<span class="tag tblue">${esc(r.trade||'')}</span>`],
+    ['نوع العقد',r=>esc(r.ctype||'—')],
+    ['قيمة العقد',r=>`<span class="num">${money(r.value)}</span>`],
+    ['الإنجاز',r=>`<div style="display:flex;gap:6px;align-items:center"><div class="bar"><i style="width:${r.progress}%;background:var(--go)"></i></div><span class="num" style="font-size:12px">${r.progress}%</span></div>`],
+    ['التسليم',r=>{const d=Math.ceil((new Date(r.ddate)-new Date())/864e5);
+      return `<span class="num">${esc(r.ddate||'—')}</span><div style="font-size:11px;color:${d<0?'var(--stop)':d<30?'var(--hold)':'var(--ink3)'}">${isNaN(d)?'':(d<0?'تأخر '+(-d)+' يوم':'باقٍ '+d+' يوم')}</div>`;}],
+    ['الحالة',r=>tg(r.status)],
+    ['',r=>`<button class="btn bs" onclick="projPL(${r.id})">الربحية</button>`],
+  ],rows)+'</div>';
+};
+async function projForm(){
+  const cs=await api('customers');
+  openM('مشروع جديد',`<div class="f2">
+    ${fld('code','رقم المشروع','PRJ-')}
+    ${fld('name','اسم المشروع','')}
+    ${selOpts('customer_id','العميل',cs.map(c=>[c.id,c.name]))}
+    ${sel('trade','التخصص',['كهرباء','ميكانيكا','سباكة','MEP كامل'])}
+    ${sel('ctype','نوع العقد',['مقطوعية','كشف كميات','تكلفة زائد نسبة'])}
+    ${fld('value','قيمة العقد',0,'number')}
+    ${fld('sdate','تاريخ البدء','','date')}
+    ${fld('ddate','تاريخ التسليم','','date')}
+    ${fld('progress','نسبة الإنجاز %',0,'number')}
+   </div>`,async()=>{
+    if(!val('code')||!val('name'))throw new Error('الرقم والاسم مطلوبان');
+    await api('projects/save',{code:val('code'),name:val('name'),customer_id:+val('customer_id'),
+      trade:val('trade'),ctype:val('ctype'),value:+val('value'),sdate:val('sdate'),
+      ddate:val('ddate'),progress:+val('progress'),status:'جارٍ'});
+    toast('تم إنشاء المشروع'); closeM(); render();
+  });
+}
+async function projPL(id){
+  const p=await api('report/project?id='+id);
+  openM('ربحية المشروع — '+p.project.name,`
+   <div class="calc">
+    <div class="cr"><span>قيمة العقد</span><span class="num">${money(p.contract_value)}</span></div>
+    <div class="cr"><span>الإيراد المُفوتر</span><span class="num">${money(p.revenue)}</span></div>
+    <div class="cr"><span>التكلفة الفعلية</span><span class="num" style="color:var(--stop)">${money(p.cost)}</span></div>
+    <div class="cr t"><span>الربح</span><span class="num" style="color:${p.profit>=0?'var(--go)':'var(--stop)'}">${money(p.profit)} ر.س</span></div>
+   </div>
+   ${p.risk?'<div class="note">الصرف يسبق الإنجاز بأكثر من 15٪ — مؤشر مبكر على تجاوز الميزانية.</div>':''}
+   <div style="display:flex;gap:14px;margin-bottom:12px">
+     <div style="flex:1"><div style="font-size:11px;color:var(--ink3)">نسبة الإنجاز</div>
+       <div class="bar" style="height:7px;margin-top:4px"><i style="width:${p.progress}%;background:var(--go)"></i></div>
+       <div class="num" style="font-size:12px;margin-top:2px">${p.progress}%</div></div>
+     <div style="flex:1"><div style="font-size:11px;color:var(--ink3)">نسبة الصرف من العقد</div>
+       <div class="bar" style="height:7px;margin-top:4px"><i style="width:${Math.min(100,p.cost_pct)}%;background:${p.cost_pct>90?'var(--stop)':'var(--hold)'}"></i></div>
+       <div class="num" style="font-size:12px;margin-top:2px">${Math.round(p.cost_pct)}%</div></div>
+   </div>
+   <table><thead><tr><th>الحساب</th><th>البند</th><th>المبلغ</th></tr></thead><tbody>
+   ${p.lines.map(l=>`<tr><td class="num">${l.code}</td><td>${esc(l.name)}</td><td class="num">${money(l.amount)}</td></tr>`).join('')||'<tr><td colspan="3" style="color:var(--ink3)">لا حركات بعد</td></tr>'}
+   </tbody></table>`,null,'إغلاق');
+}
+
+/* ───────── INVOICES ───────── */
+PAGES.invoices=async()=>{
+  const rows=await api('invoices');
+  head('الفواتير',rows.length+' فاتورة');
+  act('<button class="btn bgo" onclick="invForm()">+ فاتورة جديدة</button>');
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['الرقم',r=>`<strong class="num">${esc(r.code)}</strong>`],
+    ['العميل',r=>esc(r.customer)],
+    ['التاريخ',r=>`<span class="num">${esc(r.idate)}</span>`],
+    ['قبل الضريبة',r=>`<span class="num">${money(r.net)}</span>`],
+    ['الضريبة',r=>`<span class="num" style="color:var(--stop)">${money(r.vat)}</span>`],
+    ['الإجمالي',r=>`<span class="num" style="font-weight:600">${money(r.net+r.vat)}</span>`],
+    ['المتبقي',r=>{const rem=r.net+r.vat-r.paid;return `<span class="num" style="color:${rem>0.5?'var(--hold)':'var(--go)'}">${money(Math.max(0,rem))}</span>`;}],
+    ['محاسبياً',r=>r.journal_id?`<a class="tag tgo" style="cursor:pointer" onclick="showJ(${r.journal_id})">قيد #${r.journal_id}</a>`:'<span class="tag tgray">غير مرحّلة</span>'],
+    ['ZATCA',r=>r.zatca_status==='مرسلة'?`<a class="tag tgo" style="cursor:pointer" onclick="showZ(${r.id})">مختومة</a>`:'<span class="tag tgray">لم تُرسل</span>'],
+    ['الحالة',r=>tg(r.status)],
+    ['',r=>{
+      let b='';
+      if(!r.journal_id)b+=`<button class="btn bs" onclick="doPost(${r.id})">ترحيل</button> `;
+      else if(r.zatca_status!=='مرسلة')b+=`<button class="btn bs" onclick="doZatca(${r.id})">ختم ZATCA</button> `;
+      else if(r.status!=='مدفوعة')b+=`<button class="btn bs" onclick="payForm(${r.id},${r.net+r.vat-r.paid},${r.customer_id})">تحصيل</button>`;
+      return b;}],
+  ],rows)+'</div>';
+};
+async function invForm(){
+  const [cs,ps]=await Promise.all([api('customers'),api('projects')]);
+  window._IL=[{descr:'',account:'4110',qty:1,price:0}];
+  openM('فاتورة جديدة',invBody(cs,ps),async()=>{
+    const lines=window._IL.filter(l=>l.price>0);
+    if(!lines.length)throw new Error('أضف بنداً واحداً بسعر أكبر من صفر');
+    const r=await api('invoice/create',{customer_id:+val('customer_id'),project_id:+val('project_id')||null,
+      idate:val('idate'),ddate:val('ddate'),lines});
+    toast('تم إنشاء الفاتورة'); closeM(); render();
+  },'إنشاء');
+}
+function invBody(cs,ps){
+  return `<div class="f2">
+    ${selOpts('customer_id','العميل',cs.map(c=>[c.id,c.name]))}
+    ${selOpts('project_id','المشروع',[['','— بدون —']].concat(ps.map(p=>[p.id,p.name])))}
+    ${fld('idate','تاريخ الفاتورة',new Date().toISOString().slice(0,10),'date')}
+    ${fld('ddate','تاريخ الاستحقاق',new Date(Date.now()+30*864e5).toISOString().slice(0,10),'date')}
+   </div>
+   <div style="font-size:12px;color:var(--ink2);margin:6px 0 6px">بنود الفاتورة</div>
+   <div id="ilines"></div>
+   <button class="btn bs" style="margin-top:6px" onclick="addIL()">+ بند</button>
+   <div class="calc" id="icalc" style="margin-top:12px"></div>`;
+}
+function drawIL(){
+  const ACC=[['4110','إيراد كهرباء'],['4120','إيراد ميكانيكا'],['4130','إيراد سباكة'],['4190','إيراد MEP']];
+  $('ilines').innerHTML=window._IL.map((l,i)=>`
+   <div style="display:grid;grid-template-columns:1fr 130px 70px 100px 30px;gap:6px;margin-bottom:6px;align-items:center">
+    <input placeholder="وصف البند" value="${esc(l.descr)}" oninput="_IL[${i}].descr=this.value">
+    <select onchange="_IL[${i}].account=this.value">${ACC.map(a=>`<option value="${a[0]}" ${l.account===a[0]?'selected':''}>${a[1]}</option>`).join('')}</select>
+    <input type="number" value="${l.qty}" min="0" step="any" oninput="_IL[${i}].qty=+this.value;calcI()">
+    <input type="number" value="${l.price}" min="0" step="any" placeholder="السعر" oninput="_IL[${i}].price=+this.value;calcI()">
+    <button class="btn bs" onclick="_IL.splice(${i},1);drawIL();calcI()">×</button>
+   </div>`).join('');
+}
+function addIL(){window._IL.push({descr:'',account:'4110',qty:1,price:0});drawIL();calcI();}
+function calcI(){
+  const net=window._IL.reduce((s,l)=>s+(+l.qty||0)*(+l.price||0),0);
+  const vat=net*0.15;
+  $('icalc').innerHTML=`<div class="cr"><span>قبل الضريبة</span><span class="num">${money(net)}</span></div>
+   <div class="cr"><span>ضريبة 15٪</span><span class="num" style="color:var(--stop)">${money(vat)}</span></div>
+   <div class="cr t"><span>الإجمالي</span><span class="num">${money(net+vat)} ر.س</span></div>`;
+}
+async function doPost(id){
+  try{const r=await api('invoice/post',{id});
+    toast('رُحّلت محاسبياً — قيد #'+r.journal_id+' بمبلغ '+money(r.total)); render();
+  }catch(e){toast(e.message,1);}
+}
+async function doZatca(id){
+  try{const r=await api('invoice/zatca',{id});
+    openM('ختم ZATCA',`
+     <div class="note">هذا ختم محاكاة. التوقيع الحقيقي يتطلب شهادة CSID صادرة من الهيئة لرقمك الضريبي.</div>
+     <div class="fg"><label>UUID</label><div class="mono">${esc(r.uuid)}</div></div>
+     <div class="fg"><label>بصمة الفاتورة (SHA-256)</label><div class="mono">${esc(r.hash)}</div></div>
+     <div class="fg"><label>محتوى رمز QR — وسوم TLV</label>
+      <table style="margin-top:4px"><thead><tr><th>الوسم</th><th>البيان</th><th>القيمة</th></tr></thead><tbody>
+      ${r.tags.map(t=>`<tr><td class="num">${t.tag}</td><td>${esc(t.name||'')}</td><td class="mono" style="padding:4px 8px;background:none;border:none">${esc(t.value)}</td></tr>`).join('')}
+      </tbody></table></div>
+     <div class="fg"><label>سلسلة QR (Base64)</label><div class="mono">${esc(r.qr)}</div></div>`,null,'إغلاق');
+    render();
+  }catch(e){toast(e.message,1);}
+}
+async function showZ(id){
+  const inv=await api('invoice?id='+id);
+  openM('الفاتورة الإلكترونية — '+inv.code,`
+   <div class="fg"><label>UUID</label><div class="mono">${esc(inv.zatca_uuid)}</div></div>
+   <div class="fg"><label>البصمة</label><div class="mono">${esc(inv.zatca_hash)}</div></div>
+   <div class="fg"><label>بصمة الفاتورة السابقة (PIH)</label><div class="mono">${esc(inv.prev_hash)}</div></div>
+   <div class="fg"><label>وسوم QR</label><table><tbody>
+    ${(inv.qr_tags||[]).map(t=>`<tr><td>${esc(t.name||t.tag)}</td><td class="mono" style="background:none;border:none">${esc(t.value)}</td></tr>`).join('')}
+   </tbody></table></div>
+   <div class="fg"><label>ملف XML (UBL 2.1)</label>
+    <textarea readonly rows="10" style="font-family:ui-monospace,monospace;font-size:10px">${esc(inv.zatca_xml)}</textarea></div>`,null,'إغلاق');
+}
+function payForm(invId,rem,partnerId){
+  openM('تسجيل تحصيل',`
+   <div class="note">المتبقي على الفاتورة: ${money(rem)} ر.س</div>
+   <div class="f2">
+    ${fld('amount','المبلغ',rem,'number')}
+    ${fld('pdate','التاريخ',new Date().toISOString().slice(0,10),'date')}
+    ${sel('method','طريقة الدفع',['تحويل بنكي','شيك','نقدي','مدى'])}
+    ${fld('ref','رقم المرجع','')}
+   </div>`,async()=>{
+    await api('payment',{kind:'قبض',partner_id:partnerId,invoice_id:invId,
+      amount:+val('amount'),pdate:val('pdate'),method:val('method'),ref:val('ref')});
+    toast('تم تسجيل التحصيل'); closeM(); render();
+  });
+}
+
+/* ───────── PURCHASE ORDERS ───────── */
+PAGES.pos=async()=>{
+  const rows=await api('pos');
+  head('أوامر الشراء',rows.length+' أمر');
+  act('<button class="btn bgo" onclick="poForm()">+ أمر شراء</button>');
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['الرقم',r=>`<strong class="num">${esc(r.code)}</strong>`],
+    ['المورد',r=>esc(r.vendor)],
+    ['المشروع',r=>esc(r.project||'مخزون')],
+    ['التاريخ',r=>`<span class="num">${esc(r.pdate)}</span>`],
+    ['قبل الضريبة',r=>`<span class="num">${money(r.net)}</span>`],
+    ['شامل الضريبة',r=>`<span class="num" style="font-weight:600">${money(r.net*1.15)}</span>`],
+    ['الحالة',r=>tg(r.status)],
+    ['محاسبياً',r=>r.journal_id?`<a class="tag tgo" style="cursor:pointer" onclick="showJ(${r.journal_id})">قيد #${r.journal_id}</a>`:'—'],
+    ['',r=>{
+      if(r.status==='مسودة')return `<button class="btn bs" onclick="poSubmit(${r.id})">تقديم للاعتماد</button>`;
+      if(r.status==='بانتظار الاعتماد')return `<button class="btn bs bgo" onclick="poApprove(${r.id},true)">اعتماد</button> <button class="btn bs bstop" onclick="poApprove(${r.id},false)">رفض</button>`;
+      if(r.status==='معتمد'||r.status==='استلام جزئي')return `<button class="btn bs" onclick="poReceive(${r.id})">استلام</button>`;
+      return '';}],
+  ],rows)+'</div>';
+};
+async function poForm(){
+  const [vs,ps,ms,ws]=await Promise.all([api('vendors'),api('projects'),api('materials'),api('warehouses')]);
+  window._PL=[{material_id:ms[0]&&ms[0].id,qty:1,price:ms[0]?ms[0].cost:0}];
+  window._MS=ms;
+  openM('أمر شراء جديد',`<div class="f2">
+    ${selOpts('vendor_id','المورد',vs.map(v=>[v.id,v.name]))}
+    ${selOpts('project_id','المشروع',[['','— مخزون مركزي —']].concat(ps.map(p=>[p.id,p.name])))}
+    ${selOpts('warehouse_id','المستودع',ws.map(w=>[w.id,w.name]))}
+    ${fld('pdate','التاريخ',new Date().toISOString().slice(0,10),'date')}
+   </div>
+   <div style="font-size:12px;color:var(--ink2);margin:6px 0">البنود</div>
+   <div id="plines"></div>
+   <button class="btn bs" style="margin-top:6px" onclick="addPL()">+ بند</button>
+   <div class="calc" id="pcalc" style="margin-top:12px"></div>`,
+   async()=>{
+     const lines=window._PL.filter(l=>l.qty>0);
+     if(!lines.length)throw new Error('أضف بنداً واحداً على الأقل');
+     await api('po/create',{vendor_id:+val('vendor_id'),project_id:+val('project_id')||null,
+       warehouse_id:+val('warehouse_id'),pdate:val('pdate'),lines});
+     toast('تم إنشاء أمر الشراء'); closeM(); render();
+   },'إنشاء');
+}
+function drawPL(){
+  $('plines').innerHTML=window._PL.map((l,i)=>`
+   <div style="display:grid;grid-template-columns:1fr 70px 100px 30px;gap:6px;margin-bottom:6px">
+    <select onchange="_PL[${i}].material_id=+this.value;_PL[${i}].price=_MS.find(m=>m.id==this.value).cost;drawPL();calcP()">
+     ${window._MS.map(m=>`<option value="${m.id}" ${l.material_id==m.id?'selected':''}>${esc(m.code)} — ${esc(m.name)}</option>`).join('')}</select>
+    <input type="number" value="${l.qty}" min="0" step="any" oninput="_PL[${i}].qty=+this.value;calcP()">
+    <input type="number" value="${l.price}" min="0" step="any" oninput="_PL[${i}].price=+this.value;calcP()">
+    <button class="btn bs" onclick="_PL.splice(${i},1);drawPL();calcP()">×</button>
+   </div>`).join('');
+}
+function addPL(){const m=window._MS[0];window._PL.push({material_id:m.id,qty:1,price:m.cost});drawPL();calcP();}
+function calcP(){
+  const net=window._PL.reduce((s,l)=>s+(+l.qty||0)*(+l.price||0),0);
+  $('pcalc').innerHTML=`<div class="cr"><span>قبل الضريبة</span><span class="num">${money(net)}</span></div>
+   <div class="cr"><span>ضريبة 15٪</span><span class="num" style="color:var(--stop)">${money(net*.15)}</span></div>
+   <div class="cr t"><span>الإجمالي</span><span class="num">${money(net*1.15)} ر.س</span></div>
+   ${net>50000?'<div class="note" style="margin:8px 0 0">يتجاوز 50,000 — يلزم اعتماد المالك</div>':''}`;
+}
+async function poSubmit(id){
+  try{const r=await api('po/submit',{id});toast('قُدّم للاعتماد — يلزم اعتماد '+r.needs);render();}
+  catch(e){toast(e.message,1);}
+}
+async function poApprove(id,ok){
+  try{await api('po/approve',{id,ok});toast(ok?'تم الاعتماد':'تم الرفض');render();}
+  catch(e){toast(e.message,1);}
+}
+async function poReceive(id){
+  const po=await api('po?id='+id);
+  openM('استلام — '+po.code,`
+   <table><thead><tr><th>الصنف</th><th>مطلوب</th><th>مستلم</th><th>المتبقي</th><th>استلام الآن</th></tr></thead><tbody>
+   ${po.lines.map(l=>`<tr><td>${esc(l.mat_name||l.descr)}</td>
+    <td class="num">${l.qty}</td><td class="num">${l.received}</td>
+    <td class="num">${(l.qty-l.received).toFixed(2)}</td>
+    <td><input type="number" id="rc_${l.id}" value="${(l.qty-l.received).toFixed(2)}" min="0" max="${l.qty-l.received}" step="any" style="width:90px;padding:5px 8px;border:1px solid var(--rule2);border-radius:var(--r)"></td></tr>`).join('')}
+   </tbody></table>`,async()=>{
+    const receipts=po.lines.map(l=>({line_id:l.id,qty:+$('rc_'+l.id).value||0})).filter(r=>r.qty>0);
+    if(!receipts.length)throw new Error('حدّد كمية للاستلام');
+    const r=await api('po/receive',{id,receipts});
+    toast('تم الاستلام بقيمة '+money(r.value)+(r.complete?' — مكتمل':' — جزئي'));
+    closeM(); render();
+   },'تأكيد الاستلام');
+}
+
+/* ───────── STOCK ───────── */
+PAGES.stock=async()=>{
+  const [rows,ws,ps]=await Promise.all([api('stock'),api('warehouses'),api('projects')]);
+  head('المخزون',rows.length+' سطر');
+  window._WS=ws;window._PS=ps;
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['الرمز',r=>`<span class="num" style="font-size:12px;color:var(--ink2)">${esc(r.code)}</span>`],
+    ['الصنف',r=>`<strong>${esc(r.name)}</strong>`],
+    ['المستودع',r=>esc(r.warehouse)],
+    ['المتاح',r=>`<span class="num" style="font-weight:500;color:${r.qty<r.minq?'var(--stop)':'var(--go)'}">${money(r.qty)} ${esc(r.unit||'')}</span>`],
+    ['الحد الأدنى',r=>`<span class="num">${money(r.minq)}</span>`],
+    ['سعر الوحدة',r=>`<span class="num">${money(r.cost)}</span>`],
+    ['القيمة',r=>`<span class="num" style="font-weight:500">${money(r.qty*r.cost)}</span>`],
+    ['الحالة',r=>r.qty<r.minq?'<span class="tag tstop">منخفض</span>':'<span class="tag tgo">جيد</span>'],
+    ['',r=>`<button class="btn bs" onclick="issueForm(${r.material_id},${r.warehouse_id},${r.qty},'${esc(r.name)}')">صرف</button>`],
+  ],rows,`<tfoot><tr><td colspan="6">إجمالي قيمة المخزون</td><td class="num">${money(rows.reduce((s,r)=>s+r.qty*r.cost,0))}</td><td colspan="2"></td></tr></tfoot>`)+'</div>';
+};
+function issueForm(mid,wid,have,name){
+  openM('صرف مواد — '+name,`
+   <div class="note">المتاح: ${money(have)}</div>
+   <div class="f2">
+    ${fld('qty','الكمية',0,'number')}
+    ${selOpts('project_id','المشروع',window._PS.map(p=>[p.id,p.name]))}
+   </div>`,async()=>{
+    const r=await api('material/issue',{material_id:mid,warehouse_id:wid,qty:+val('qty'),project_id:+val('project_id')});
+    toast('صُرفت بتكلفة '+money(r.cost)+' — المتبقي '+money(r.remaining));
+    closeM(); render();
+   },'صرف');
+}
+
+/* ───────── EMPLOYEES ───────── */
+PAGES.employees=async()=>{
+  const rows=await api('employees');
+  head('الموظفون',rows.length+' موظف');
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['الموظف',r=>`<strong>${esc(r.name)}</strong><div class="num" style="font-size:11px;color:var(--ink3)">${esc(r.code)}</div>`],
+    ['المسمى',r=>esc(r.job||'—')],
+    ['القسم',r=>`<span class="tag tblue">${esc(r.dept||'')}</span>`],
+    ['نوع الراتب',r=>`<span class="tag ${r.ptype==='يومي'?'thold':'tgo'}">${esc(r.ptype)}</span>`],
+    ['الأساسي',r=>`<span class="num">${money(r.basic)}${r.ptype==='يومي'?' /يوم':''}</span>`],
+    ['الإجمالي',r=>`<span class="num" style="font-weight:500">${money(r.ptype==='يومي'?r.basic*26:r.basic+r.housing+r.transport+r.site)}</span>`],
+    ['GOSI',r=>`<span class="num">${money(r.ptype==='يومي'?0:(r.basic+r.housing)*0.22)}</span>`],
+    ['التعيين',r=>`<span class="num">${esc(r.hired||'—')}</span>`],
+    ['الحالة',r=>tg(r.status)],
+    ['',r=>`<button class="btn bs" onclick="eosCalc(${r.id})">نهاية الخدمة</button>`],
+  ],rows)+'</div>';
+};
+async function eosCalc(id){
+  openM('حاسبة نهاية الخدمة',`<div class="f2">
+    ${fld('end','تاريخ انتهاء الخدمة',new Date().toISOString().slice(0,10),'date')}
+    ${sel('reason','سبب الانتهاء',['استقالة','إنهاء من صاحب العمل','انتهاء العقد'])}
+   </div><div id="eosout"></div>
+   <button class="btn" onclick="runEos(${id})">احسب</button>`,null,'إغلاق');
+}
+async function runEos(id){
+  const r=await api(`eos?id=${id}&end=${val('end')}&reason=${encodeURIComponent(val('reason'))}`);
+  $('eosout').innerHTML=`<div class="calc">
+   <div class="cr"><span>مدة الخدمة</span><span class="num">${r.years} سنة</span></div>
+   <div class="cr"><span>الأجر الشامل</span><span class="num">${money(r.wage)}</span></div>
+   <div class="cr"><span>المكافأة الكاملة</span><span class="num">${money(r.gratuity_full)}</span></div>
+   <div class="cr"><span>القاعدة المطبّقة</span><span>${esc(r.rule)}</span></div>
+   <div class="cr t"><span>المستحق</span><span class="num" style="color:var(--go)">${money(r.payable)} ر.س</span></div></div>`;
+}
+
+/* ───────── PAYROLL ───────── */
+PAGES.payroll=async()=>{
+  const rows=await api('payruns');
+  head('الرواتب',rows.length+' مسير');
+  act(`<button class="btn bgo" onclick="payrollForm()">تشغيل مسير جديد</button>`);
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['الفترة',r=>`<strong class="num">${esc(r.period)}</strong>`],
+    ['الحالة',r=>tg(r.status)],
+    ['القيد',r=>r.journal_id?`<a class="tag tgo" style="cursor:pointer" onclick="showJ(${r.journal_id})">قيد #${r.journal_id}</a>`:'—'],
+    ['التاريخ',r=>`<span class="num">${esc((r.created||'').slice(0,10))}</span>`],
+  ],rows)+'</div>';
+};
+function payrollForm(){
+  const now=new Date();
+  openM('تشغيل مسير رواتب',`<div class="fg"><label>الفترة (YYYY-MM)</label>
+   <input id="f_period" value="${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}"></div>
+   <div class="note">سيُحسب الراتب الثابت بالبدلات، واليومي بـ 26 يوماً. GOSI 10٪ موظف و 12٪ صاحب عمل على الأساسي + السكن.</div>`,
+   async()=>{
+     const r=await api('payroll/run',{period:val('period')});
+     toast(`المسير جاهز: ${r.count} موظف · إجمالي ${money(r.gross)} · صافي ${money(r.net)}`);
+     closeM(); render();
+   },'تشغيل');
+}
+
+/* ───────── JOURNALS ───────── */
+PAGES.journals=async()=>{
+  const rows=await api('journals');
+  head('القيود اليومية',rows.length+' قيد');
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['#',r=>`<span class="num">${r.id}</span>`],
+    ['المرجع',r=>`<strong class="num">${esc(r.ref||'—')}</strong>`],
+    ['التاريخ',r=>`<span class="num">${esc(r.jdate)}</span>`],
+    ['البيان',r=>esc(r.memo||'')],
+    ['المصدر',r=>`<span class="tag tgray">${esc(r.src_type||'يدوي')}</span>`],
+    ['المستخدم',r=>esc(r.author||'—')],
+    ['',r=>`<button class="btn bs" onclick="showJ(${r.id})">عرض</button>`],
+  ],rows)+'</div>';
+};
+async function showJ(id){
+  const j=await api('journal?id='+id);
+  const td=j.lines.reduce((s,l)=>s+l.debit,0), tc=j.lines.reduce((s,l)=>s+l.credit,0);
+  openM('قيد #'+j.id+' — '+(j.ref||''),`
+   <div style="font-size:12px;color:var(--ink2);margin-bottom:10px">${esc(j.memo||'')} · ${esc(j.jdate)}</div>
+   <table><thead><tr><th>الحساب</th><th>البيان</th><th>المشروع</th><th>مدين</th><th>دائن</th></tr></thead><tbody>
+   ${j.lines.map(l=>`<tr><td><span class="num">${l.account}</span> ${esc(l.account_name)}</td>
+    <td style="font-size:12px;color:var(--ink2)">${esc(l.memo||'')}</td>
+    <td style="font-size:12px">${esc(l.project||'—')}</td>
+    <td class="num">${l.debit?money(l.debit):''}</td>
+    <td class="num">${l.credit?money(l.credit):''}</td></tr>`).join('')}
+   </tbody><tfoot><tr><td colspan="3">الإجمالي</td>
+    <td class="num">${money(td)}</td><td class="num">${money(tc)}</td></tr></tfoot></table>
+   <div style="margin-top:10px;padding:8px 12px;border-radius:var(--r);background:${Math.abs(td-tc)<0.01?'var(--gobg)':'var(--stopbg)'};color:${Math.abs(td-tc)<0.01?'var(--go)':'var(--stop)'};font-size:13px">
+    ${Math.abs(td-tc)<0.01?'القيد متوازن — المدين = الدائن':'تحذير: القيد غير متوازن'}</div>`,null,'إغلاق');
+}
+
+/* ───────── REPORTS ───────── */
+PAGES.reports=async()=>{
+  head('التقارير المالية','مستخرجة من دفتر الأستاذ');
+  const y=new Date().getFullYear();
+  const [tb,pl,bs,vat,aged]=await Promise.all([
+    api('report/trial'),api(`report/pnl?from=${y}-01-01&to=${y}-12-31`),
+    api('report/bs'),api(`report/vat?from=${y}-01-01&to=${y}-12-31`),api('report/aged')]);
+
+  let h='<div class="split">';
+  h+=`<div class="panel"><div class="ph"><h3>قائمة الدخل — ${y}</h3></div><div class="pb">`
+   +pl.income.map(r=>rw(esc(r.name),money(r.amount))).join('')
+   +rw('<b>إجمالي الإيرادات</b>',money(pl.total_income),'var(--go)')
+   +'<div style="height:10px"></div>'
+   +pl.expense.map(r=>rw(esc(r.name),money(r.amount))).join('')
+   +rw('<b>إجمالي المصروفات</b>',money(pl.total_expense),'var(--stop)')
+   +`<div style="margin-top:10px;padding:10px 13px;border-radius:var(--r);background:var(--gobg);display:flex;justify-content:space-between">
+     <b style="color:var(--go)">صافي الربح</b><span class="num" style="font-weight:600;color:var(--go)">${money(pl.net)} · هامش ${pl.margin}٪</span></div>`
+   +'</div></div>';
+
+  h+=`<div class="panel"><div class="ph"><h3>الميزانية العمومية</h3>
+     <span class="tag ${bs.balanced?'tgo':'tstop'}">${bs.balanced?'متوازنة':'غير متوازنة'}</span></div><div class="pb">`
+   +'<div style="font-size:12px;color:var(--ink2);margin-bottom:5px">الأصول</div>'
+   +bs.assets.map(r=>rw(esc(r.name),money(r.balance))).join('')
+   +rw('<b>إجمالي الأصول</b>',money(bs.total_assets))
+   +'<div style="font-size:12px;color:var(--ink2);margin:10px 0 5px">الخصوم</div>'
+   +bs.liabilities.map(r=>rw(esc(r.name),money(r.balance))).join('')
+   +rw('<b>إجمالي الخصوم</b>',money(bs.total_liabilities))
+   +'<div style="font-size:12px;color:var(--ink2);margin:10px 0 5px">حقوق الملكية</div>'
+   +bs.equity.map(r=>rw(esc(r.name),money(r.balance))).join('')
+   +rw('الأرباح المبقاة',money(bs.retained))
+   +rw('<b>إجمالي حقوق الملكية</b>',money(bs.total_equity))
+   +'</div></div></div>';
+
+  h+=`<div class="split"><div class="panel"><div class="ph"><h3>إقرار ضريبة القيمة المضافة</h3></div><div class="pb">`
+   +rw('المبيعات الخاضعة',money(vat.sales))
+   +rw('ضريبة المخرجات',money(vat.output_vat),'var(--stop)')
+   +rw('ضريبة المدخلات',money(vat.input_vat),'var(--go)')
+   +`<div style="margin-top:10px;padding:10px 13px;border-radius:var(--r);background:var(--bluebg);display:flex;justify-content:space-between">
+     <b style="color:var(--blue)">الصافي المستحق</b><span class="num" style="font-weight:600;color:var(--blue)">${money(vat.due)} ر.س</span></div>`
+   +'</div></div>';
+
+  h+='<div class="panel"><div class="ph"><h3>أعمار الذمم المدينة</h3></div><div class="pb">'
+   +rw('غير مستحق',money(aged.buckets.current))
+   +rw('1 – 30 يوم',money(aged.buckets.d30),'var(--hold)')
+   +rw('31 – 60 يوم',money(aged.buckets.d60),'var(--hold)')
+   +rw('61 – 90 يوم',money(aged.buckets.d90),'var(--stop)')
+   +rw('أكثر من 90 يوم',money(aged.buckets.d90p),'var(--stop)')
+   +rw('<b>الإجمالي</b>',money(aged.total))
+   +'</div></div></div>';
+
+  h+='<div class="panel"><div class="ph"><h3>ميزان المراجعة</h3></div>'
+   +tbl([['الرمز',r=>`<span class="num">${r.code}</span>`],['الحساب',r=>esc(r.name)],
+     ['النوع',r=>`<span class="tag tgray">${({asset:'أصول',liability:'خصوم',equity:'حقوق ملكية',income:'إيراد',expense:'مصروف'})[r.type]}</span>`],
+     ['مدين',r=>`<span class="num">${r.td?money(r.td):''}</span>`],
+     ['دائن',r=>`<span class="num">${r.tc?money(r.tc):''}</span>`],
+     ['الرصيد',r=>`<span class="num" style="font-weight:500">${r.balance?money(r.balance):''}</span>`]],
+     tb.filter(r=>r.td||r.tc),
+     `<tfoot><tr><td colspan="3">الإجمالي</td><td class="num">${money(tb.reduce((s,r)=>s+r.td,0))}</td>
+      <td class="num">${money(tb.reduce((s,r)=>s+r.tc,0))}</td><td></td></tr></tfoot>`)
+   +'</div>';
+  $('view').innerHTML=h;
+};
+
+/* ───────── AUDIT ───────── */
+PAGES.audit=async()=>{
+  const rows=await api('audit');
+  head('سجل التدقيق','آخر '+rows.length+' عملية');
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['الوقت',r=>`<span class="num" style="font-size:12px">${esc(r.ts.slice(0,19).replace('T',' '))}</span>`],
+    ['المستخدم',r=>esc(r.username)],
+    ['العملية',r=>`<span class="tag ${r.action==='login-fail'?'tstop':'tgray'}">${esc(r.action)}</span>`],
+    ['الكيان',r=>esc(r.entity)],
+    ['المرجع',r=>`<span class="num">${esc(r.entity_id||'')}</span>`],
+    ['التفاصيل',r=>esc(r.detail||'')],
+  ],rows)+'</div>';
+};
+
+
+/* ───────── PIPELINE ───────── */
+PAGES.pipeline=async()=>{
+  const p=await api('pipeline');
+  head('خط الأنابيب',p.rows.length+' فرصة');
+  act('<button class="btn bgo" onclick="oppForm()">+ فرصة جديدة</button>');
+  let h='<div class="kpis">'
+   +kpi('فرص مفتوحة',p.byStage['جديد'].length+p.byStage['مؤهل'].length+p.byStage['عرض سعر'].length+p.byStage['تفاوض'].length,money(p.total_open)+' ر.س','acc')
+   +kpi('القيمة المرجّحة',money(p.weighted),'حسب الاحتمالية','')
+   +kpi('معدل الفوز',p.win_rate+'٪',money(p.won_value)+' ر.س فوز',p.win_rate>=40?'acc':'warn')
+   +kpi('القيمة المفقودة',money(p.lost_value),p.byStage['خسر'].length+' فرصة','bad')
+   +'</div>';
+
+  h+='<div class="panel"><div class="ph"><h3>المراحل</h3></div><div class="pb">'
+   +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:start">';
+  const colors={'جديد':'var(--ink3)','مؤهل':'var(--blue)','عرض سعر':'var(--go)','تفاوض':'var(--hold)','فاز':'var(--go)','خسر':'var(--stop)'};
+  p.stages.forEach(st=>{
+    const rows=p.byStage[st];
+    h+=`<div><div style="font-size:11px;font-weight:500;color:var(--ink2);padding:5px 6px;border-top:3px solid ${colors[st]};margin-bottom:6px;display:flex;justify-content:space-between">
+      <span>${st}</span><span class="num">${rows.length}</span></div>`;
+    rows.forEach(r=>{
+      h+=`<div onclick='oppForm(${JSON.stringify(r)})' style="background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);padding:8px;margin-bottom:5px;cursor:pointer">
+        <div style="font-size:12px;font-weight:500;line-height:1.35">${esc(r.name)}</div>
+        <div style="font-size:10px;color:var(--ink3);margin:2px 0 4px">${esc(r.customer||'')}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="tag ${r.heat==='حار'?'tstop':r.heat==='دافئ'?'thold':'tblue'}" style="font-size:9px">${esc(r.heat||'')}</span>
+          <span class="num" style="font-size:11px;font-weight:500">${money(r.value)}</span></div>
+        <div class="bar" style="margin-top:5px;height:3px"><i style="width:${r.probability||0}%;background:${colors[st]}"></i></div></div>`;
+    });
+    h+='</div>';
+  });
+  h+='</div></div></div>';
+
+  if(p.lost_reasons.length){
+    h+='<div class="panel"><div class="ph"><h3>تحليل أسباب الخسارة</h3></div>'
+     +tbl([['السبب',r=>esc(r.reason)],['عدد المرات',r=>`<span class="num">${r.n}</span>`],
+       ['القيمة المفقودة',r=>`<span class="num" style="color:var(--stop)">${money(r.value)}</span>`],
+       ['النسبة',r=>{const pc=p.lost_value?Math.round(r.value/p.lost_value*100):0;
+         return `<div style="display:flex;gap:6px;align-items:center"><div class="bar"><i style="width:${pc}%;background:var(--stop)"></i></div><span class="num" style="font-size:12px">${pc}%</span></div>`;}]],
+       p.lost_reasons)+'</div>';
+  }
+  $('view').innerHTML=h;
+};
+async function oppForm(r){
+  r=r||{};
+  const cs=await api('customers');
+  openM(r.id?'الفرصة — '+r.name:'فرصة جديدة',`<div class="f2">
+    ${fld('name','اسم الفرصة',r.name)}
+    ${selOpts('customer_id','العميل',cs.map(c=>[c.id,c.name]),r.customer_id)}
+    ${sel('trade','التخصص',['كهرباء','ميكانيكا','سباكة','MEP كامل'],r.trade)}
+    ${sel('ctype','نوع العقد',['مقطوعية','كشف كميات','تكلفة زائد نسبة'],r.ctype)}
+    ${fld('value','القيمة المتوقعة',r.value||0,'number')}
+    ${fld('probability','الاحتمالية %',r.probability==null?50:r.probability,'number')}
+    ${sel('source','المصدر',['مناقصة','عميل مباشر','إحالة','أخرى'],r.source)}
+    ${sel('heat','درجة الاهتمام',['حار','دافئ','بارد'],r.heat)}
+    ${sel('stage','المرحلة',['جديد','مؤهل','عرض سعر','تفاوض','فاز','خسر'],r.stage)}
+    ${fld('close_date','تاريخ الإغلاق المتوقع',r.close_date,'date')}
+   </div>
+   ${r.id?`<div style="border-top:1px solid var(--rule);margin-top:6px;padding-top:12px">
+     <button class="btn" onclick="quoteForm(${r.id},${r.customer_id||'null'})">إنشاء كشف كميات لهذه الفرصة</button>
+     <button class="btn bstop" style="margin-right:6px" onclick="loseForm(${r.id})">تسجيل خسارة</button></div>`:''}`,
+   async()=>{
+     if(!val('name'))throw new Error('اسم الفرصة مطلوب');
+     await api('opp/save',{id:r.id,name:val('name'),customer_id:+val('customer_id'),
+       trade:val('trade'),ctype:val('ctype'),value:+val('value'),probability:+val('probability'),
+       source:val('source'),heat:val('heat'),stage:val('stage'),close_date:val('close_date')});
+     toast('تم الحفظ'); closeM(); render();
+   });
+}
+function loseForm(id){
+  openM('تسجيل خسارة',`
+   ${sel('reason','سبب الخسارة',['سعر أعلى من المنافس','العميل اختار مقاولاً آخر','تأجيل المشروع','إلغاء المشروع','عدم تأهل فني','شروط دفع غير مناسبة','أخرى'])}
+   ${fld('competitor','المنافس الذي فاز','')}`,
+   async()=>{ await api('opp/lose',{id,reason:val('reason'),competitor:val('competitor')});
+     toast('سُجّلت الخسارة'); closeM(); render(); },'تأكيد');
+}
+
+/* ───────── QUOTES / BOQ ───────── */
+PAGES.quotes=async()=>{
+  const rows=await api('quotes');
+  head('عروض الأسعار',rows.length+' عرض');
+  act('<button class="btn bgo" onclick="quoteForm()">+ كشف كميات جديد</button>');
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['الرقم',r=>`<strong class="num">${esc(r.code)}</strong>`],
+    ['العميل',r=>esc(r.customer)],
+    ['النوع',r=>`<span class="tag tgray">${esc(r.qtype)}</span>`],
+    ['التاريخ',r=>`<span class="num">${esc(r.qdate)}</span>`],
+    ['التكلفة',r=>`<span class="num" style="color:var(--ink2)">${money(r.cost)}</span>`],
+    ['السعر',r=>`<span class="num" style="font-weight:600">${money(r.net)}</span>`],
+    ['الهامش',r=>{const m=r.net?Math.round((r.net-r.cost)/r.net*100):0;
+      return `<span class="num" style="color:${m>=20?'var(--go)':m>=10?'var(--hold)':'var(--stop)'}">${m}٪</span>`;}],
+    ['الحالة',r=>tg(r.status)],
+    ['',r=>{
+      let b=`<button class="btn bs" onclick="quoteView(${r.id})">عرض</button> `;
+      if(r.status==='مسودة')b+=`<button class="btn bs" onclick="quoteSend(${r.id})">إرسال</button>`;
+      else if(r.status==='مُرسل')b+=`<button class="btn bs bgo" onclick="quoteWin(${r.id})">فاز</button>`;
+      else if(r.status==='مقبول'&&!r.invoice_id)b+=`<button class="btn bs" onclick="quoteInv(${r.id})">فاتورة</button>`;
+      return b;}],
+  ],rows)+'</div>';
+};
+async function quoteForm(oppId,custId){
+  const cs=await api('customers');
+  window._QL=[{item:'E-01',descr:'',trade:'كهرباء',unit:'قطعة',qty:1,cost:0,price:0}];
+  openM('كشف كميات جديد',`<div class="f3">
+    ${selOpts('customer_id','العميل',cs.map(c=>[c.id,c.name]),custId)}
+    ${sel('qtype','نوع العرض',['كشف كميات','سعر مقطوع','تكلفة زائد نسبة'])}
+    ${fld('valid_until','صالح حتى',new Date(Date.now()+30*864e5).toISOString().slice(0,10),'date')}
+   </div>
+   <div style="font-size:12px;color:var(--ink2);margin:4px 0 6px">بنود كشف الكميات — أدخل التكلفة والسعر ليحسب الهامش</div>
+   <div id="qlines"></div>
+   <button class="btn bs" style="margin-top:6px" onclick="addQL()">+ بند</button>
+   ${sel('terms','شروط الدفع',['30% مقدم · 40% منتصف · 30% تسليم','دفعات شهرية حسب الإنجاز','دفع كامل عند الانتهاء'])}
+   <div class="calc" id="qcalc"></div>`,
+   async()=>{
+     const lines=window._QL.filter(l=>l.price>0);
+     if(!lines.length)throw new Error('أضف بنداً واحداً بسعر أكبر من صفر');
+     await api('quote/create',{customer_id:+val('customer_id'),opp_id:oppId||null,
+       qtype:val('qtype'),valid_until:val('valid_until'),terms:val('terms'),lines});
+     toast('تم إنشاء كشف الكميات'); closeM(); go('quotes');
+   },'إنشاء');
+}
+function drawQL(){
+  const TR=['كهرباء','ميكانيكا','سباكة','إنذار حريق'];
+  const UN=['قطعة','متر طولي','متر مربع','نقطة','نظام','وحدة'];
+  $('qlines').innerHTML=window._QL.map((l,i)=>`
+   <div style="display:grid;grid-template-columns:62px 1fr 92px 82px 58px 80px 80px 26px;gap:4px;margin-bottom:5px">
+    <input value="${esc(l.item)}" placeholder="الرمز" oninput="_QL[${i}].item=this.value" style="padding:6px">
+    <input value="${esc(l.descr)}" placeholder="وصف البند" oninput="_QL[${i}].descr=this.value" style="padding:6px">
+    <select onchange="_QL[${i}].trade=this.value" style="padding:6px">${TR.map(t=>`<option ${l.trade===t?'selected':''}>${t}</option>`).join('')}</select>
+    <select onchange="_QL[${i}].unit=this.value" style="padding:6px">${UN.map(u=>`<option ${l.unit===u?'selected':''}>${u}</option>`).join('')}</select>
+    <input type="number" value="${l.qty}" min="0" step="any" oninput="_QL[${i}].qty=+this.value;calcQ()" style="padding:6px" title="الكمية">
+    <input type="number" value="${l.cost}" min="0" step="any" placeholder="التكلفة" oninput="_QL[${i}].cost=+this.value;calcQ()" style="padding:6px">
+    <input type="number" value="${l.price}" min="0" step="any" placeholder="السعر" oninput="_QL[${i}].price=+this.value;calcQ()" style="padding:6px">
+    <button class="btn bs" onclick="_QL.splice(${i},1);drawQL();calcQ()" style="padding:6px 4px">×</button>
+   </div>`).join('');
+}
+function addQL(){window._QL.push({item:'',descr:'',trade:'كهرباء',unit:'قطعة',qty:1,cost:0,price:0});drawQL();calcQ();}
+function calcQ(){
+  const L=window._QL;
+  const cost=L.reduce((s,l)=>s+(+l.qty||0)*(+l.cost||0),0);
+  const net=L.reduce((s,l)=>s+(+l.qty||0)*(+l.price||0),0);
+  const m=net?((net-cost)/net*100):0;
+  $('qcalc').innerHTML=`<div class="cr"><span>إجمالي التكلفة</span><span class="num" style="color:var(--ink2)">${money(cost)}</span></div>
+   <div class="cr"><span>السعر قبل الضريبة</span><span class="num">${money(net)}</span></div>
+   <div class="cr"><span>الربح المتوقع</span><span class="num" style="color:${m>=20?'var(--go)':m>=10?'var(--hold)':'var(--stop)'}">${money(net-cost)} · هامش ${m.toFixed(1)}٪</span></div>
+   <div class="cr"><span>ضريبة 15٪</span><span class="num" style="color:var(--stop)">${money(net*.15)}</span></div>
+   <div class="cr t"><span>الإجمالي</span><span class="num">${money(net*1.15)} ر.س</span></div>
+   ${m<10&&net>0?'<div class="note" style="margin:8px 0 0">الهامش أقل من 10٪ — راجع التسعير قبل الإرسال.</div>':''}`;
+}
+async function quoteView(id){
+  const qd=await api('quote?id='+id);
+  openM('كشف الكميات — '+qd.code,`
+   <div style="font-size:12px;color:var(--ink2);margin-bottom:10px">${esc(qd.customer)} · ${esc(qd.qdate)}${qd.valid_until?' · صالح حتى '+esc(qd.valid_until):''}</div>
+   <table><thead><tr><th>الرمز</th><th>البند</th><th>التخصص</th><th>الكمية</th><th>الوحدة</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>
+   ${qd.lines.map(l=>`<tr><td class="num">${esc(l.item)}</td><td>${esc(l.descr)}</td>
+    <td><span class="tag tblue">${esc(l.trade||'')}</span></td>
+    <td class="num">${l.qty}</td><td>${esc(l.unit)}</td>
+    <td class="num">${money(l.price)}</td><td class="num">${money(l.qty*l.price)}</td></tr>`).join('')}
+   </tbody></table>
+   <div class="calc" style="margin-top:12px">
+    <div class="cr"><span>التكلفة</span><span class="num" style="color:var(--ink2)">${money(qd.totals.cost)}</span></div>
+    <div class="cr"><span>قبل الضريبة</span><span class="num">${money(qd.totals.net)}</span></div>
+    <div class="cr"><span>الربح</span><span class="num" style="color:var(--go)">${money(qd.totals.profit)} · ${qd.totals.margin}٪</span></div>
+    <div class="cr"><span>ضريبة 15٪</span><span class="num" style="color:var(--stop)">${money(qd.totals.vat)}</span></div>
+    <div class="cr t"><span>الإجمالي</span><span class="num">${money(qd.totals.total)} ر.س</span></div></div>
+   ${qd.terms?`<div style="font-size:12px;color:var(--ink2);margin-top:10px">شروط الدفع: ${esc(qd.terms)}</div>`:''}`,null,'إغلاق');
+}
+async function quoteSend(id){try{await api('quote/send',{id});toast('أُرسل للعميل');render();}catch(e){toast(e.message,1);}}
+async function quoteWin(id){
+  openM('تحويل إلى مشروع',`
+   <div class="note">سيُنشأ مشروع جديد، ويتحول كل بند في كشف الكميات إلى مهمة تلقائياً.</div>
+   <div class="f2">${fld('name','اسم المشروع','')}${fld('ddate','تاريخ التسليم','','date')}</div>`,
+   async()=>{
+     const r=await api('quote/win',{id,name:val('name'),ddate:val('ddate')});
+     toast(`أُنشئ المشروع ${r.code} مع ${r.tasks} مهمة`); closeM(); go('projects');
+   },'إنشاء المشروع');
+}
+async function quoteInv(id){
+  try{const r=await api('quote/invoice',{id});toast('أُنشئت الفاتورة — رحّلها من شاشة الفواتير');go('invoices');}
+  catch(e){toast(e.message,1);}
+}
+
+/* ───────── TASKS & GANTT ───────── */
+PAGES.tasks=async()=>{
+  const ps=await api('projects');
+  const pid=window._TP||ps[0]&&ps[0].id;
+  window._TP=pid;
+  if(!pid){$('view').innerHTML='<div class="panel"><div class="empty"><b>لا مشاريع</b>أنشئ مشروعاً أولاً.</div></div>';return;}
+  const ts=await api('project/tasks?id='+pid);
+  const proj=ps.find(p=>p.id==pid);
+  head('المهام والجدول',proj?proj.name+' · '+ts.length+' مهمة':'');
+  act(`<select onchange="_TP=+this.value;render()" style="padding:6px 10px;border:1px solid var(--rule2);border-radius:var(--r)">
+    ${ps.map(p=>`<option value="${p.id}" ${p.id==pid?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+   <button class="btn bgo" onclick="taskForm(${pid})">+ مهمة</button>`);
+
+  const done=ts.filter(t=>t.status==='منتهي').length, late=ts.filter(t=>t.status==='متأخر').length;
+  let h='<div class="kpis">'
+   +kpi('إجمالي المهام',ts.length,'','')
+   +kpi('منتهية',done,ts.length?Math.round(done/ts.length*100)+'٪':'','acc')
+   +kpi('متأخرة',late,late?'تحتاج متابعة':'لا تأخير',late?'bad':'')
+   +kpi('إنجاز المشروع',(proj?proj.progress:0)+'٪','موزون بأهمية المهام','')
+   +'</div>';
+
+  h+='<div class="panel"><div class="ph"><h3>المهام</h3></div>'+tbl([
+    ['المهمة',t=>`<strong>${esc(t.name)}</strong><div style="font-size:11px;color:var(--ink3)">${esc(t.zone||'')}${t.phase?' · '+esc(t.phase):''}</div>`],
+    ['التخصص',t=>`<span class="tag tblue">${esc(t.trade||'')}</span>`],
+    ['المنفذ',t=>`<span class="tag ${t.exec==='مقاول'?'thold':'tgray'}">${esc(t.exec||'داخلي')}</span>`],
+    ['المسؤول',t=>esc(t.assignee||'—')],
+    ['الوزن',t=>`<span class="num">${t.weight||1}</span>`],
+    ['الإنجاز',t=>`<div style="display:flex;gap:6px;align-items:center"><div class="bar"><i style="width:${t.progress||0}%;background:${t.status==='متأخر'?'var(--stop)':'var(--go)'}"></i></div><span class="num" style="font-size:12px">${t.progress||0}%</span></div>`],
+    ['التسليم',t=>`<span class="num" style="font-size:12px">${esc(t.ddate||'—')}</span>`],
+    ['الحالة',t=>tg(t.status)],
+    ['',t=>`<button class="btn bs" onclick='taskForm(${pid},${JSON.stringify(t)})'>تعديل</button>`],
+  ],ts)+'</div>';
+
+  // Gantt
+  const dated=ts.filter(t=>t.sdate&&t.ddate);
+  if(dated.length){
+    const min=Math.min(...dated.map(t=>+new Date(t.sdate)));
+    const max=Math.max(...dated.map(t=>+new Date(t.ddate)));
+    const span=Math.max(1,max-min);
+    h+='<div class="panel"><div class="ph"><h3>الجدول الزمني</h3><span style="font-size:11px;color:var(--ink3)">'
+      +new Date(min).toISOString().slice(0,10)+' ← '+new Date(max).toISOString().slice(0,10)+'</span></div><div class="pb">';
+    dated.forEach(t=>{
+      const l=(+new Date(t.sdate)-min)/span*100, w=Math.max(2,(+new Date(t.ddate)-+new Date(t.sdate))/span*100);
+      const c=t.status==='متأخر'?'var(--stop)':t.status==='منتهي'?'var(--go)':'var(--blue)';
+      h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <div style="width:170px;font-size:12px;color:var(--ink2);text-align:left;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name)}</div>
+        <div style="flex:1;height:18px;background:var(--paper);border-radius:3px;position:relative">
+          <div style="position:absolute;right:${l}%;width:${w}%;height:100%;background:${c};border-radius:3px;opacity:.28"></div>
+          <div style="position:absolute;right:${l}%;width:${w*(t.progress||0)/100}%;height:100%;background:${c};border-radius:3px"></div></div>
+        <span class="num" style="font-size:11px;width:32px;flex-shrink:0">${t.progress||0}%</span></div>`;
+    });
+    h+='</div></div>';
+  }
+  $('view').innerHTML=h;
+};
+function taskForm(pid,t){
+  t=t||{};
+  openM(t.id?'تعديل مهمة':'مهمة جديدة',`<div class="f2">
+    ${fld('name','اسم المهمة',t.name)}
+    ${sel('trade','التخصص',['كهرباء','ميكانيكا','سباكة','إنذار حريق','MEP كامل'],t.trade)}
+    ${fld('zone','الموقع / الطابق',t.zone)}
+    ${sel('phase','المرحلة',['تصميم','توريد','تركيب','تشغيل','تسليم'],t.phase)}
+    ${fld('assignee','المسؤول',t.assignee)}
+    ${sel('exec','المنفذ',['داخلي','مقاول'],t.exec)}
+    ${fld('sdate','تاريخ البدء',t.sdate,'date')}
+    ${fld('ddate','تاريخ التسليم',t.ddate,'date')}
+    ${fld('weight','الوزن (أهمية نسبية)',t.weight||1,'number')}
+    ${fld('progress','نسبة الإنجاز %',t.progress||0,'number')}
+    ${sel('status','الحالة',['لم يبدأ','جارٍ','متأخر','منتهي'],t.status)}
+   </div>
+   <div class="note">الوزن يحدد تأثير المهمة على نسبة إنجاز المشروع. مهمة بوزن 3 تعادل ثلاث مهام بوزن 1.</div>`,
+   async()=>{
+     if(!val('name'))throw new Error('اسم المهمة مطلوب');
+     const r=await api('task/save',{id:t.id,project_id:pid,name:val('name'),trade:val('trade'),
+       zone:val('zone'),phase:val('phase'),assignee:val('assignee'),exec:val('exec'),
+       sdate:val('sdate'),ddate:val('ddate'),weight:+val('weight')||1,
+       progress:+val('progress')||0,status:val('status')});
+     toast('حُفظت — إنجاز المشروع الآن '+r.progress+'٪'); closeM(); render();
+   });
+}
+
+/* ───────── DAILY REPORT ───────── */
+PAGES.daily=async()=>{
+  const ps=await api('projects');
+  const pid=window._DP||ps[0]&&ps[0].id;
+  window._DP=pid;
+  if(!pid){$('view').innerHTML='<div class="panel"><div class="empty"><b>لا مشاريع</b></div></div>';return;}
+  const st=await api('daily?id='+pid+'&days=30');
+  const proj=ps.find(p=>p.id==pid);
+  head('التقرير اليومي',proj?proj.name:'');
+  act(`<select onchange="_DP=+this.value;render()" style="padding:6px 10px;border:1px solid var(--rule2);border-radius:var(--r)">
+    ${ps.map(p=>`<option value="${p.id}" ${p.id==pid?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+   <button class="btn bgo" onclick="dailyForm(${pid})">+ تقرير اليوم</button>`);
+
+  let h='<div class="kpis">'
+   +kpi('تقارير مرفوعة',st.workdays,'آخر 30 يوم','')
+   +kpi('نسبة الالتزام',st.compliance+'٪',st.compliance>=90?'ممتاز':'دون الهدف 90٪',st.compliance>=90?'acc':'warn')
+   +kpi('ساعات العمل',money(st.manhours),'رجل·ساعة','')
+   +kpi('أيام بها معوقات',st.withIssues,st.withIssues?'تحتاج مراجعة':'لا معوقات',st.withIssues?'warn':'acc')
+   +'</div>';
+  h+='<div class="panel"><div class="ph"><h3>سجل التقارير</h3></div>'+tbl([
+    ['التاريخ',r=>`<strong class="num">${esc(r.rdate)}</strong>`],
+    ['العمالة',r=>`<span class="num">${(r.elec_men||0)+(r.mech_men||0)+(r.plum_men||0)+(r.other_men||0)}</span>
+      <div style="font-size:10px;color:var(--ink3)">ك${r.elec_men||0} · م${r.mech_men||0} · س${r.plum_men||0}</div>`],
+    ['كهرباء',r=>`<div class="bar"><i style="width:${r.elec_pct||0}%;background:var(--blue)"></i></div><span class="num" style="font-size:11px">${r.elec_pct||0}%</span>`],
+    ['ميكانيكا',r=>`<div class="bar"><i style="width:${r.mech_pct||0}%;background:#93462A"></i></div><span class="num" style="font-size:11px">${r.mech_pct||0}%</span>`],
+    ['سباكة',r=>`<div class="bar"><i style="width:${r.plum_pct||0}%;background:var(--hold)"></i></div><span class="num" style="font-size:11px">${r.plum_pct||0}%</span>`],
+    ['الأعمال',r=>`<span style="font-size:12px">${esc((r.work||'').slice(0,60))}</span>`],
+    ['المعوقات',r=>r.issue?`<span class="tag tstop">${esc(r.issue.slice(0,40))}</span>`:'<span style="color:var(--ink3)">—</span>'],
+    ['الطقس',r=>`<span style="font-size:12px">${esc(r.weather||'')} ${r.temp?r.temp+'°':''}</span>`],
+  ],st.rows)+'</div>';
+  $('view').innerHTML=h;
+};
+function dailyForm(pid){
+  const td=new Date().toISOString().slice(0,10);
+  openM('التقرير اليومي',`
+   ${fld('rdate','التاريخ',td,'date')}
+   <div style="font-size:12px;color:var(--ink2);margin:8px 0 6px">العمالة الحاضرة</div>
+   <div class="f3">
+    ${fld('elec_men','كهربائيون',0,'number')}
+    ${fld('mech_men','ميكانيكيون',0,'number')}
+    ${fld('plum_men','سباكون',0,'number')}
+   </div>
+   <div style="font-size:12px;color:var(--ink2);margin:4px 0 6px">نسبة الإنجاز</div>
+   <div class="f3">
+    ${fld('elec_pct','كهرباء %',0,'number')}
+    ${fld('mech_pct','ميكانيكا %',0,'number')}
+    ${fld('plum_pct','سباكة %',0,'number')}
+   </div>
+   <div class="fg"><label>الأعمال المنجزة اليوم</label><textarea id="f_work" rows="2"></textarea></div>
+   <div class="fg"><label>المعوقات (اتركه فارغاً إن لم توجد)</label><textarea id="f_issue" rows="2"></textarea></div>
+   <div class="f2">${sel('weather','الطقس',['مشمس','غائم','حار جداً','رياح','ممطر'])}${fld('temp','الحرارة °م',38,'number')}</div>`,
+   async()=>{
+     const r=await api('daily/save',{project_id:pid,rdate:val('rdate'),
+       elec_men:+val('elec_men'),mech_men:+val('mech_men'),plum_men:+val('plum_men'),
+       elec_pct:+val('elec_pct'),mech_pct:+val('mech_pct'),plum_pct:+val('plum_pct'),
+       work:val('work'),issue:val('issue'),weather:val('weather'),temp:+val('temp')});
+     toast(r.updated?'حُدّث تقرير اليوم':'رُفع التقرير'); closeM(); render();
+   });
+}
+
+/* ───────── TIMESHEETS ───────── */
+PAGES.timesheets=async()=>{
+  const rows=await api('timesheets');
+  head('ساعات العمل',rows.length+' سجل');
+  act('<button class="btn bgo" onclick="tsForm()">+ تسجيل ساعات</button>');
+  const total=rows.reduce((s,r)=>s+r.hours*r.rate,0);
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['التاريخ',r=>`<span class="num">${esc(r.tdate)}</span>`],
+    ['الموظف',r=>`<strong>${esc(r.employee)}</strong>`],
+    ['المشروع',r=>esc(r.project)],
+    ['الساعات',r=>`<span class="num">${r.hours}</span>`],
+    ['التكلفة/ساعة',r=>`<span class="num">${money(r.rate)}</span>`],
+    ['التكلفة',r=>`<span class="num" style="font-weight:500">${money(r.hours*r.rate)}</span>`],
+    ['القيد',r=>r.journal_id?`<a class="tag tgo" style="cursor:pointer" onclick="showJ(${r.journal_id})">#${r.journal_id}</a>`:'—'],
+    ['الوصف',r=>`<span style="font-size:12px">${esc(r.note||'')}</span>`],
+  ],rows,`<tfoot><tr><td colspan="5">إجمالي تكلفة العمالة</td><td class="num">${money(total)}</td><td colspan="2"></td></tr></tfoot>`)+'</div>';
+};
+async function tsForm(){
+  const [ps,es]=await Promise.all([api('projects'),api('employees')]);
+  openM('تسجيل ساعات عمل',`<div class="f2">
+    ${selOpts('project_id','المشروع',ps.map(p=>[p.id,p.name]))}
+    ${selOpts('employee_id','الموظف',es.map(e=>[e.id,e.name]))}
+    ${fld('tdate','التاريخ',new Date().toISOString().slice(0,10),'date')}
+    ${fld('hours','عدد الساعات',8,'number')}
+   </div>
+   ${fld('note','وصف العمل','')}
+   <div class="note">التكلفة تُحسب من معدل تكلفة الساعة للموظف وتُحمّل على المشروع مباشرة.</div>`,
+   async()=>{
+     const r=await api('timesheet',{project_id:+val('project_id'),employee_id:+val('employee_id'),
+       tdate:val('tdate'),hours:+val('hours'),note:val('note')});
+     toast('سُجّلت بتكلفة '+money(r.cost)+' ر.س'); closeM(); render();
+   });
+}
+
+/* ───────── MATERIAL REQUESTS ───────── */
+PAGES.matreqs=async()=>{
+  const rows=await api('matreqs');
+  head('طلبات المواد',rows.length+' طلب');
+  act('<button class="btn bgo" onclick="mrForm()">+ طلب مواد</button>');
+  $('view').innerHTML='<div class="panel">'+tbl([
+    ['الرقم',r=>`<strong class="num">${esc(r.code)}</strong>`],
+    ['المشروع',r=>esc(r.project)],
+    ['مقدم الطلب',r=>esc(r.requester||'—')],
+    ['مطلوب بتاريخ',r=>`<span class="num">${esc(r.needed||'—')}</span>`],
+    ['البنود',r=>`<span class="num">${r.n}</span>`],
+    ['السبب',r=>`<span style="font-size:12px">${esc(r.reason||'')}</span>`],
+    ['الحالة',r=>tg(r.status)],
+    ['',r=>{
+      let b=`<button class="btn bs" onclick="mrView(${r.id})">عرض</button> `;
+      if(r.status==='مسودة')b+=`<button class="btn bs bgo" onclick="mrApprove(${r.id},true)">اعتماد</button> <button class="btn bs bstop" onclick="mrApprove(${r.id},false)">رفض</button>`;
+      else if(r.status==='معتمد'||r.status==='صرف جزئي')b+=`<button class="btn bs" onclick="mrFulfil(${r.id})">صرف المتاح</button>`;
+      return b;}],
+  ],rows)+'</div>';
+};
+async function mrForm(){
+  const [ps,ms,ws]=await Promise.all([api('projects'),api('materials'),api('warehouses')]);
+  window._MRL=[{material_id:ms[0]&&ms[0].id,qty:1}];
+  window._MRM=ms;
+  openM('طلب مواد من الموقع',`<div class="f3">
+    ${selOpts('project_id','المشروع',ps.map(p=>[p.id,p.name]))}
+    ${selOpts('warehouse_id','المستودع',ws.map(w=>[w.id,w.name]))}
+    ${fld('needed','مطلوب بتاريخ',new Date(Date.now()+7*864e5).toISOString().slice(0,10),'date')}
+   </div>
+   <div id="mrlines"></div>
+   <button class="btn bs" style="margin-top:6px" onclick="addMRL()">+ صنف</button>
+   ${fld('reason','سبب الطلب','')}
+   <div class="note">النظام سيفحص المخزون تلقائياً ويحدد ما يُصرف من المخزن وما يحتاج أمر شراء.</div>`,
+   async()=>{
+     const lines=window._MRL.filter(l=>l.qty>0);
+     if(!lines.length)throw new Error('أضف صنفاً واحداً على الأقل');
+     await api('matreq/create',{project_id:+val('project_id'),warehouse_id:+val('warehouse_id'),
+       needed:val('needed'),reason:val('reason'),lines});
+     toast('قُدّم طلب المواد'); closeM(); render();
+   },'تقديم');
+}
+function drawMRL(){
+  $('mrlines').innerHTML=window._MRL.map((l,i)=>`
+   <div style="display:grid;grid-template-columns:1fr 90px 28px;gap:6px;margin-bottom:5px">
+    <select onchange="_MRL[${i}].material_id=+this.value">${window._MRM.map(m=>`<option value="${m.id}" ${l.material_id==m.id?'selected':''}>${esc(m.code)} — ${esc(m.name)}</option>`).join('')}</select>
+    <input type="number" value="${l.qty}" min="0" step="any" oninput="_MRL[${i}].qty=+this.value">
+    <button class="btn bs" onclick="_MRL.splice(${i},1);drawMRL()">×</button>
+   </div>`).join('');
+}
+function addMRL(){window._MRL.push({material_id:window._MRM[0].id,qty:1});drawMRL();}
+async function mrView(id){
+  const mr=await api('matreq?id='+id);
+  openM('طلب مواد — '+mr.code,`
+   <div style="font-size:12px;color:var(--ink2);margin-bottom:10px">${esc(mr.project)} · ${esc(mr.requester||'')} · ${esc(mr.warehouse||'')}</div>
+   <table><thead><tr><th>الصنف</th><th>مطلوب</th><th>متاح</th><th>مصروف</th><th>يحتاج شراء</th></tr></thead><tbody>
+   ${mr.lines.map(l=>`<tr><td>${esc(l.code)} — ${esc(l.name)}</td>
+    <td class="num">${l.qty} ${esc(l.unit||'')}</td>
+    <td class="num" style="color:${l.available>=l.qty?'var(--go)':'var(--hold)'}">${l.available}</td>
+    <td class="num">${l.issued}</td>
+    <td class="num">${l.shortfall>0?`<span class="tag tstop">${l.shortfall}</span>`:'<span class="tag tgo">مكتمل</span>'}</td></tr>`).join('')}
+   </tbody></table>
+   ${mr.reason?`<div style="font-size:12px;color:var(--ink2);margin-top:10px">${esc(mr.reason)}</div>`:''}`,null,'إغلاق');
+}
+async function mrApprove(id,ok){
+  try{await api('matreq/approve',{id,ok});toast(ok?'اعتُمد الطلب':'رُفض الطلب');render();}
+  catch(e){toast(e.message,1);}
+}
+async function mrFulfil(id){
+  try{const r=await api('matreq/fulfil',{id});
+    toast('صُرفت بتكلفة '+money(r.cost)+(r.complete?' — مكتمل':' — جزئي، الباقي يحتاج شراء'));render();}
+  catch(e){toast(e.message,1);}
+}
+
+/* ───────── modal helpers ───────── */
+let _ok=null;
+function openM(title,body,onOk,okLabel){
+  $('mttl').textContent=title; $('mb').innerHTML=body; _ok=onOk;
+  $('mf').innerHTML=onOk
+    ?`<button class="btn bgo" onclick="okM()">${okLabel||'حفظ'}</button><button class="btn" onclick="closeM()">إلغاء</button>`
+    :`<button class="btn" onclick="closeM()">${okLabel||'إغلاق'}</button>`;
+  $('veil').classList.add('on');
+  if(window._IL) {drawIL();calcI();}
+  if(window._PL) {drawPL();calcP();}
+  if(window._QL) {drawQL();calcQ();}
+  if(window._MRL){drawMRL();}
+}
+async function okM(){
+  const b=$('mf').querySelector('.bgo');
+  b.disabled=true;
+  try{ await _ok(); }catch(e){ toast(e.message,1); }
+  b.disabled=false;
+}
+function closeM(){$('veil').classList.remove('on');window._IL=null;window._PL=null;window._QL=null;window._MRL=null;}
+const val=k=>{const e=$('f_'+k);return e?e.value.trim():'';};
+const fld=(k,l,v,t)=>`<div class="fg"><label>${l}</label><input id="f_${k}" type="${t||'text'}" value="${esc(v==null?'':v)}"></div>`;
+const sel=(k,l,o,v)=>`<div class="fg"><label>${l}</label><select id="f_${k}">${o.map(x=>`<option ${v===x?'selected':''}>${esc(x)}</option>`).join('')}</select></div>`;
+const selOpts=(k,l,pairs,cur)=>`<div class="fg"><label>${l}</label><select id="f_${k}">${pairs.map(p=>`<option value="${esc(p[0])}" ${cur!=null&&String(cur)===String(p[0])?'selected':''}>${esc(p[1])}</option>`).join('')}</select></div>`;
+function tg(s){
+  const go=['نشط','مستلم','مدفوعة','مكتمل','معتمد','مقبول','مصروف','فاز','منتهي'],
+        hold=['جارٍ','معلقة','بانتظار الاعتماد','بانتظار الاستلام','استلام جزئي','إجازة','مسودة','مُرسل','صرف جزئي','مؤهل','تفاوض','لم يبدأ'],
+        stop=['متأخرة','متوقف','مرفوض','متأخر','خسر'];
+  let c='tgray';
+  if(go.includes(s))c='tgo';else if(hold.includes(s))c='thold';else if(stop.includes(s))c='tstop';
+  return `<span class="tag ${c}">${esc(s||'')}</span>`;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
+$('veil').addEventListener('click',e=>{if(e.target.id==='veil')closeM();});
+
+/* ───────── password ───────── */
+async function doChange(e,forced){
+  e.preventDefault();
+  const err=$(forced?'perr':'merr');
+  const g=id=>$(forced?id:'m'+id).value;
+  err.style.display='none';
+  const cur=g('pc'), n1=g('pn'), n2=g('pn2');
+  if(n1!==n2){ err.textContent='كلمتا المرور غير متطابقتين'; err.style.display='block'; return; }
+  try{
+    await api('password/change',{current:cur,next:n1});
+    if(forced){
+      toast('تم تغيير كلمة المرور');
+      ME.must_change=false;
+      $('pwgate').style.display='none';
+      await start();
+    }else{
+      closeM(); toast('تم تغيير كلمة المرور — أُنهيت جلساتك الأخرى');
+    }
+  }catch(ex){ err.textContent=ex.message; err.style.display='block'; }
+}
+function pwForm(){
+  openM('تغيير كلمة المرور',`
+   <div class="lerr" id="merr" style="display:none;margin-bottom:12px"></div>
+   <div class="fg"><label>كلمة المرور الحالية</label><input id="mpc" type="password" autocomplete="current-password"></div>
+   <div class="fg"><label>كلمة المرور الجديدة</label><input id="mpn" type="password" autocomplete="new-password"></div>
+   <div class="fg"><label>أعد كتابة الجديدة</label><input id="mpn2" type="password" autocomplete="new-password"></div>
+   <div style="font-size:11px;color:var(--ink3);line-height:1.8">
+     8 خانات على الأقل · حرف ورقم على الأقل<br>
+     تغيير كلمة المرور يُنهي جلساتك المفتوحة على الأجهزة الأخرى.</div>`,
+   async()=>{ await doChange({preventDefault(){}},false); },'حفظ');
+}
+
+/* boot */
+if(location.protocol==='file:') $('lfile').style.display='block';
+TOK=localStorage.getItem('tok');
+if(TOK) start().catch(()=>{localStorage.removeItem('tok');$('login').style.display='flex';});
+</script>
+</body>
+</html>
