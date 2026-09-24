@@ -1,9 +1,12 @@
 {
   "name": "vision-mac-erp",
-  "version": "1.1.0",
-  "description": "نظام إدارة المقاولات — محاسبة بالقيد المزدوج وZATCA",
+  "version": "1.2.0",
+  "description": "نظام إدارة المقاولات — محاسبة بالقيد المزدوج · ZATCA · مستخلصات ومحتجزات · رواتب WPS",
   "main": "server.js",
-  "scripts": { "start": "node server.js", "test": "node test.js && node test-a.js" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js && node test-a.js && node test-p.js && node test-hr.js && node test-pc.js && node test-doc.js"
+  },
   "engines": { "node": ">=22.5.0" },
   "private": true
 }

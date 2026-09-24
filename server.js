@@ -7,6 +7,10 @@ const { db, q, get1, run, hashPw, seed } = require('./db');
 const L = require('./ledger');
 const Z = require('./zatca');
 const SL = require('./sales');
+const PG = require('./progress');
+const HR = require('./payroll');
+const PC = require('./procure');
+const DOC = require('./docs');
 
 const PORT = process.env.PORT || 3000;
 const R2 = L.R2;
@@ -20,15 +24,19 @@ const VAT = () => parseFloat(S('vat_rate') || '0.15');
 /* ═══════════ PERMISSIONS — enforced server-side ═══════════ */
 const PERM = {
   admin:       { all: true, limit: Infinity },
-  pm:          { read: ['*'], write: ['partners','projects','tasks','pos','timesheets','dailyreports','sales'],
-                 approve: ['po'], limit: 50000 },
-  engineer:    { read: ['projects','tasks','materials','stock','partners','dailyreports','timesheets','moves'],
-                 write: ['tasks','timesheets','dailyreports'], limit: 0 },
-  accountant:  { read: ['*'], write: ['invoices','payments','journals','partners','sales'],
+  pm:          { read: ['*'], write: ['partners','projects','tasks','pos','timesheets','dailyreports','sales',
+                                      'contracts','ipc','vo','subcert'],
+                 approve: ['po','ipc','vo','subcert'], limit: 50000 },
+  engineer:    { read: ['projects','tasks','materials','stock','partners','dailyreports','timesheets','moves',
+                        'contracts','ipc'],
+                 write: ['tasks','timesheets','dailyreports','ipc'], limit: 0 },
+  accountant:  { read: ['*'], write: ['invoices','payments','journals','partners','sales','retention'],
                  approve: ['payment'], limit: 20000 },
   storekeeper: { read: ['materials','stock','pos','moves','partners','projects','warehouses'],
                  write: ['moves','receipt'], limit: 0 },
-  hr:          { read: ['employees','payruns','projects'], write: ['employees','payruns'], limit: 0 },
+  hr:          { read: ['employees','payruns','projects','advances','leaves'],
+                 write: ['employees','payruns','advances','leaves'],
+                 approve: ['leave'], limit: 0 },
 };
 function can(user, action, resource) {
   if (!user) return false;
@@ -58,6 +66,9 @@ function login(username, password) {
   const token = crypto.randomBytes(32).toString('hex');
   run('INSERT INTO sessions(token,user_id,expires) VALUES(?,?,?)', token, u.id, Date.now() + 12 * 3600 * 1000);
   run('DELETE FROM sessions WHERE expires < ?', Date.now());
+  /* تدوين الدخول هنا لا في المسار: المصادقة تُسجَّل مع المصادقة،
+     فلا يفلت أي طريق آخر للدخول من السجل. */
+  audit({ id: u.id, username: u.username }, 'login', 'user', u.id);
   return { token, user: { id: u.id, username: u.username, name: u.name, role: u.role,
                           must_change: !!u.must_change } };
 }
@@ -380,9 +391,9 @@ const routes = {};
 const R = (m, p, h, o) => { routes[m + ' ' + p] = { h, o: o || {} }; };
 
 R('POST', '/api/login', c => {
+  /* النجاح والفشل كلاهما مُدوَّن داخل login() — لا تكرار هنا */
   const s = login(c.body.username, c.body.password);
-  if (!s) { audit(null, 'login-fail', 'user', c.body.username); throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة'); }
-  audit(s.user, 'login', 'user', s.user.id);
+  if (!s) throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة');
   return s;
 }, { open: true });
 R('POST', '/api/logout', c => { run('DELETE FROM sessions WHERE token=?', c.token); return { ok: true }; });
@@ -651,11 +662,320 @@ R('POST', '/api/stock/transfer', writes('moves', c => {
   return r;
 }));
 
+/* ═══════════ v1.2 — المستخلصات والمحتجزات وأوامر التغيير ═══════════ */
+
+R('GET', '/api/contracts', needs('contracts', () => q(`SELECT c.*, p.code project_code,
+    p.name project, p.status project_status, pa.name customer,
+    (SELECT COALESCE(SUM(qty*price),0) FROM citems WHERE contract_id=c.id) value,
+    (SELECT COUNT(*) FROM ipcs WHERE contract_id=c.id AND status='معتمد') ipc_count
+  FROM contracts c JOIN projects p ON p.id=c.project_id
+  LEFT JOIN partners pa ON pa.id=p.customer_id ORDER BY p.code DESC`)));
+
+R('GET', '/api/contract', needs('contracts', c => PG.contractDetail(Number(c.query.project_id))));
+R('POST', '/api/contract/save', writes('contracts', c => PG.saveContract(c.user, c.body)));
+R('POST', '/api/contract/advance', c => {
+  if (!can(c.user, 'write', 'payments') && !can(c.user, 'write', 'contracts'))
+    throw new Error('لا تملك صلاحية تسجيل الدفعة المقدمة');
+  const r = PG.receiveAdvance(c.user, c.body);
+  audit(c.user, 'advance', 'contract', c.body.contract_id, String(r.amount));
+  return r;
+});
+
+R('GET', '/api/ipcs', needs('ipc', () => q(`SELECT i.*, p.code project_code, p.name project,
+    pa.name customer FROM ipcs i JOIN projects p ON p.id=i.project_id
+  LEFT JOIN partners pa ON pa.id=p.customer_id ORDER BY i.id DESC`)));
+R('GET', '/api/ipc', needs('ipc', c => PG.ipcDetail(Number(c.query.id))));
+R('GET', '/api/ipc/draft', needs('ipc', c => PG.ipcDraft(Number(c.query.contract_id))));
+R('POST', '/api/ipc/create', writes('ipc', c => {
+  const id = PG.createIPC(c.user, c.body);
+  audit(c.user, 'create', 'ipc', id, '');
+  return { id };
+}));
+R('POST', '/api/ipc/submit', writes('ipc', c => {
+  const r = PG.submitIPC(c.user, Number(c.body.id));
+  audit(c.user, 'submit', 'ipc', c.body.id, String(r.total));
+  return r;
+}));
+R('POST', '/api/ipc/approve', c => {
+  if (!can(c.user, 'approve', 'ipc')) throw new Error('لا تملك صلاحية اعتماد المستخلصات');
+  const ipc = get1('SELECT total FROM ipcs WHERE id=?', c.body.id);
+  if (!ipc) throw new Error('المستخلص غير موجود');
+  const ok = c.body.ok !== false;
+  if (ok && R2(ipc.total) > limitOf(c.user))
+    throw new Error(`قيمة المستخلص ${R2(ipc.total)} تتجاوز حدّ اعتمادك (${limitOf(c.user)}) — يلزم اعتماد المالك`);
+  const r = PG.approveIPC(c.user, Number(c.body.id), ok, c.body.note);
+  audit(c.user, ok ? 'approve' : 'reject', 'ipc', c.body.id, String(ipc.total));
+  return r;
+});
+
+R('GET', '/api/vos', needs('contracts', () => q(`SELECT v.*, p.code project_code, p.name project,
+    u.name approver FROM vos v JOIN projects p ON p.id=v.project_id
+  LEFT JOIN users u ON u.id=v.approved_by ORDER BY v.id DESC`)));
+R('GET', '/api/vo', needs('contracts', c => {
+  const v = get1(`SELECT v.*, p.code project_code, p.name project FROM vos v
+    JOIN projects p ON p.id=v.project_id WHERE v.id=?`, c.query.id);
+  if (!v) throw new Error('أمر التغيير غير موجود');
+  return { ...v, lines: q('SELECT * FROM volines WHERE vo_id=? ORDER BY id', v.id) };
+}));
+R('POST', '/api/vo/create', writes('vo', c => {
+  const r = PG.createVO(c.user, c.body);
+  audit(c.user, 'create', 'vo', r.id, r.code + ' · ' + r.amount);
+  return r;
+}));
+R('POST', '/api/vo/approve', c => {
+  if (!can(c.user, 'approve', 'vo')) throw new Error('لا تملك صلاحية اعتماد أوامر التغيير');
+  const vo = get1('SELECT amount FROM vos WHERE id=?', c.body.id);
+  if (!vo) throw new Error('أمر التغيير غير موجود');
+  const ok = c.body.ok !== false;
+  if (ok && R2(vo.amount) > limitOf(c.user))
+    throw new Error(`قيمة أمر التغيير ${R2(vo.amount)} تتجاوز حدّ اعتمادك (${limitOf(c.user)})`);
+  const r = PG.approveVO(c.user, Number(c.body.id), ok, c.body.note);
+  audit(c.user, ok ? 'approve' : 'reject', 'vo', c.body.id, String(vo.amount));
+  return r;
+});
+
+R('GET', '/api/subcerts', needs('subcert', () => q(`SELECT s.*, p.code project_code,
+    p.name project, v.name vendor FROM subcerts s JOIN projects p ON p.id=s.project_id
+  JOIN partners v ON v.id=s.vendor_id ORDER BY s.id DESC`)));
+R('GET', '/api/subcert', needs('subcert', c => PG.subcertDetail(Number(c.query.id))));
+R('POST', '/api/subcert/create', writes('subcert', c => {
+  const id = PG.createSubcert(c.user, c.body);
+  audit(c.user, 'create', 'subcert', id, '');
+  return { id };
+}));
+R('POST', '/api/subcert/approve', c => {
+  if (!can(c.user, 'approve', 'subcert')) throw new Error('لا تملك صلاحية اعتماد شهادات المقاولين');
+  const sc = get1('SELECT total FROM subcerts WHERE id=?', c.body.id);
+  if (!sc) throw new Error('الشهادة غير موجودة');
+  const ok = c.body.ok !== false;
+  if (ok && R2(sc.total) > limitOf(c.user))
+    throw new Error(`قيمة الشهادة ${R2(sc.total)} تتجاوز حدّ اعتمادك (${limitOf(c.user)})`);
+  const r = PG.approveSubcert(c.user, Number(c.body.id), ok, c.body.note);
+  audit(c.user, ok ? 'approve' : 'reject', 'subcert', c.body.id, String(sc.total));
+  return r;
+});
+
+R('GET', '/api/retention', needs('contracts', () => PG.retentionBoard()));
+R('POST', '/api/retention/release', c => {
+  if (!can(c.user, 'write', 'retention') && !can(c.user, 'write', 'payments'))
+    throw new Error('لا تملك صلاحية الإفراج عن المحتجزات');
+  const amt = R2(c.body.amount);
+  if (amt > limitOf(c.user))
+    throw new Error(`المبلغ ${amt} يتجاوز حدّ صلاحيتك (${limitOf(c.user)})`);
+  const r = PG.releaseRetention(c.user, c.body);
+  audit(c.user, 'retention-release', c.body.kind, c.body.project_id, String(amt));
+  return r;
+});
+R('GET', '/api/project/status', needs('projects', c => PG.projectStatus(Number(c.query.id))));
+
+/* ═══════════ v1.2 — الرواتب الكاملة ═══════════ */
+
+R('GET', '/api/hr/dashboard', needs('employees', () => HR.hrDashboard()));
+R('GET', '/api/hr/expiring', needs('employees', c => HR.expiringDocs(c.query.days)));
+
+R('GET', '/api/advances', needs('advances', () => q(`SELECT a.*, e.name employee, e.code emp_code,
+    u.name approver FROM advances a JOIN employees e ON e.id=a.employee_id
+  LEFT JOIN users u ON u.id=a.approved_by ORDER BY a.id DESC`)));
+R('GET', '/api/advance/balance', needs('advances', c => HR.advanceBalance(Number(c.query.employee_id))));
+R('POST', '/api/advance/request', writes('advances', c => {
+  const r = HR.requestAdvance(c.user, c.body);
+  audit(c.user, 'create', 'advance', r.id, String(r.amount));
+  return r;
+}));
+R('POST', '/api/advance/approve', c => {
+  /* صرف السلفة نقد — يلزم صلاحية مالية، لا صلاحية موارد بشرية */
+  if (!can(c.user, 'approve', 'payment') && c.user.role !== 'admin')
+    throw new Error('اعتماد السلف يحتاج صلاحية مالية');
+  const a = get1('SELECT amount FROM advances WHERE id=?', c.body.id);
+  if (!a) throw new Error('السلفة غير موجودة');
+  const ok = c.body.ok !== false;
+  if (ok && R2(a.amount) > limitOf(c.user))
+    throw new Error(`مبلغ السلفة ${R2(a.amount)} يتجاوز حدّ صلاحيتك (${limitOf(c.user)})`);
+  const r = HR.approveAdvance(c.user, Number(c.body.id), ok, c.body.note);
+  audit(c.user, ok ? 'approve' : 'reject', 'advance', c.body.id, String(a.amount));
+  return r;
+});
+
+R('GET', '/api/leaves', needs('leaves', () => q(`SELECT l.*, e.name employee, e.code emp_code,
+    u.name approver FROM leaves l JOIN employees e ON e.id=l.employee_id
+  LEFT JOIN users u ON u.id=l.approved_by ORDER BY l.id DESC`)));
+R('GET', '/api/leave/balance', needs('leaves', c => HR.leaveBalance(Number(c.query.employee_id))));
+R('POST', '/api/leave/request', writes('leaves', c => {
+  const r = HR.requestLeave(c.user, c.body);
+  audit(c.user, 'create', 'leave', r.id, r.days + ' يوم');
+  return r;
+}));
+R('POST', '/api/leave/approve', c => {
+  if (!can(c.user, 'approve', 'leave') && c.user.role !== 'admin')
+    throw new Error('لا تملك صلاحية اعتماد الإجازات');
+  const r = HR.approveLeave(c.user, Number(c.body.id), c.body.ok !== false, c.body.note);
+  audit(c.user, r.ok ? 'approve' : 'reject', 'leave', c.body.id, r.days + ' يوم');
+  return r;
+});
+
+R('POST', '/api/payrun/open', writes('payruns', c => HR.openPayrun(c.user, c.body.period)));
+R('POST', '/api/payrun/item', writes('payruns', c => HR.addPayItem(c.user, c.body)));
+R('POST', '/api/payrun/compute', writes('payruns', c => HR.computePayrun(Number(c.body.id))));
+R('GET', '/api/payrun', needs('payruns', c => HR.payrunDetail(Number(c.query.id))));
+R('POST', '/api/payrun/approve', c => {
+  /* اعتماد المسير يُرحّل قيداً مالياً — المالك أو المحاسب فقط */
+  if (c.user.role !== 'admin' && !can(c.user, 'write', 'journals'))
+    throw new Error('اعتماد المسير يحتاج صلاحية مالية');
+  const r = HR.approvePayrun(c.user, Number(c.body.id));
+  audit(c.user, 'approve', 'payrun', c.body.id, String(r.net));
+  return r;
+});
+R('POST', '/api/payrun/wps', c => {
+  if (!can(c.user, 'write', 'payruns') && c.user.role !== 'admin')
+    throw new Error('لا تملك صلاحية توليد ملف الأجور');
+  const r = HR.generateWPS(c.user, Number(c.body.id));
+  audit(c.user, 'wps', 'payrun', c.body.id, r.nlines + ' موظف · ' + r.total);
+  return r;
+});
+
+/* ═══════════ v1.2 — المشتريات المتقدمة ═══════════ */
+
+R('GET', '/api/rfqs', needs('pos', () => q(`SELECT r.*, p.name project, v.name awarded,
+    (SELECT COUNT(*) FROM rfqvendors WHERE rfq_id=r.id) invited,
+    (SELECT COUNT(*) FROM rfqvendors WHERE rfq_id=r.id AND status='مُستلم') replied
+  FROM rfqs r LEFT JOIN projects p ON p.id=r.project_id
+  LEFT JOIN partners v ON v.id=r.awarded_vendor ORDER BY r.id DESC`)));
+R('GET', '/api/rfq', needs('pos', c => PC.compareRFQ(Number(c.query.id))));
+R('POST', '/api/rfq/create', writes('pos', c => {
+  const r = PC.createRFQ(c.user, c.body);
+  audit(c.user, 'create', 'rfq', r.id, r.code + ' · ' + r.vendors + ' موردين');
+  return r;
+}));
+R('POST', '/api/rfq/quote', writes('pos', c => {
+  const r = PC.recordQuote(c.user, c.body);
+  audit(c.user, 'quote', 'rfq', c.body.rfqvendor_id, String(r.total));
+  return r;
+}));
+R('POST', '/api/rfq/award', c => {
+  if (!can(c.user, 'approve', 'po')) throw new Error('لا تملك صلاحية إرساء طلبات العروض');
+  const r = PC.awardRFQ(c.user, c.body, createPO, submitPO);
+  audit(c.user, 'award', 'rfq', c.body.rfqvendor_id, 'أمر شراء #' + r.po_id);
+  return r;
+});
+
+R('GET', '/api/prices', needs('materials', c => PC.bestPrices(Number(c.query.material_id))));
+R('POST', '/api/price/save', writes('pos', c => PC.savePrice(c.user, c.body)));
+
+R('GET', '/api/bills', needs('pos', () => q(`SELECT b.*, v.name vendor, p.code po_code
+  FROM bills b JOIN partners v ON v.id=b.vendor_id
+  LEFT JOIN pos p ON p.id=b.po_id ORDER BY b.id DESC`)));
+R('GET', '/api/bill', needs('pos', c => PC.billDetail(Number(c.query.id))));
+R('POST', '/api/bill/create', c => {
+  if (!can(c.user, 'write', 'invoices') && !can(c.user, 'write', 'pos'))
+    throw new Error('لا تملك صلاحية تسجيل فواتير الموردين');
+  const r = PC.createBill(c.user, c.body);
+  audit(c.user, 'create', 'bill', r.id, r.code + ' · ' + r.total);
+  return r;
+});
+R('POST', '/api/bill/match', needs('pos', c => PC.matchBill(Number(c.body.id))));
+R('POST', '/api/bill/post', c => {
+  if (!can(c.user, 'write', 'journals')) throw new Error('ترحيل فواتير الموردين يحتاج صلاحية محاسبية');
+  /* التجاوز عن فروق المطابقة صلاحية المالك وحده */
+  if (c.body.override === true && c.user.role !== 'admin')
+    throw new Error('تجاوز فروق المطابقة الثلاثية للمالك فقط');
+  const r = PC.postBill(c.user, Number(c.body.id), c.body);
+  audit(c.user, 'post', 'bill', c.body.id,
+    r.total + (r.overridden ? ' · تجاوز: ' + c.body.reason : ''));
+  return r;
+});
+
+R('GET', '/api/vendors/scores', needs('partners', () => PC.vendorBoard()));
+R('GET', '/api/vendor/score', needs('partners', c => PC.vendorScore(Number(c.query.id))));
+
+/* ═══════════ v1.2 — المستندات والتقارير وسجل التدقيق ═══════════ */
+
+/* المرفق يتبع صلاحية الكيان المرتبط به: من يقرأ الفاتورة يقرأ مرفقاتها */
+const ENT_RES = { project: 'projects', invoice: 'invoices', po: 'pos', bill: 'pos',
+  ipc: 'ipc', vo: 'contracts', subcert: 'subcert', contract: 'contracts',
+  employee: 'employees', partner: 'partners', quote: 'sales', rfq: 'pos',
+  payrun: 'payruns', task: 'tasks', matreq: 'materials' };
+const entRes = e => ENT_RES[e] || 'journals';
+
+R('GET', '/api/attachments', c => {
+  const res = entRes(c.query.entity);
+  if (!can(c.user, 'read', res) && !can(c.user, 'read', '*'))
+    throw new Error('لا تملك صلاحية عرض مرفقات هذا السجل');
+  return DOC.listAttachments(c.query.entity, Number(c.query.entity_id));
+});
+R('GET', '/api/attachment', c => {
+  const a = get1('SELECT entity FROM attachments WHERE id=?', c.query.id);
+  if (!a) throw new Error('المرفق غير موجود');
+  if (!can(c.user, 'read', entRes(a.entity)) && !can(c.user, 'read', '*'))
+    throw new Error('لا تملك صلاحية تحميل هذا المرفق');
+  return DOC.getAttachment(Number(c.query.id));
+});
+R('POST', '/api/attachment/add', c => {
+  if (!can(c.user, 'write', entRes(c.body.entity)))
+    throw new Error('لا تملك صلاحية الإرفاق بهذا السجل');
+  const r = DOC.attach(c.user, c.body);
+  audit(c.user, 'attach', c.body.entity, c.body.entity_id, r.filename + ' · ' + r.size + ' بايت');
+  return r;
+});
+R('POST', '/api/attachment/delete', c => {
+  const a = get1('SELECT * FROM attachments WHERE id=?', c.body.id);
+  if (!a) throw new Error('المرفق غير موجود');
+  /* الحذف للمالك أو لمن رفعه — لا يمحو أحد مستند غيره */
+  if (c.user.role !== 'admin' && a.uploaded_by !== c.user.id)
+    throw new Error('لا يمكنك حذف مرفق رفعه غيرك');
+  const r = DOC.deleteAttachment(c.user, Number(c.body.id));
+  audit(c.user, 'attach-delete', a.entity, a.entity_id, r.filename);
+  return r;
+});
+R('GET', '/api/attachments/stats', c => {
+  if (c.user.role !== 'admin') throw new Error('المالك فقط');
+  return DOC.attachmentStats();
+});
+
+R('GET', '/api/reports', c => DOC.reportList());
+R('GET', '/api/report/data', fin(c => DOC.reportData(c.query.key, c.query)));
+R('POST', '/api/report/xlsx', fin(c => {
+  const r = DOC.exportXlsx(c.body.key, c.body);
+  audit(c.user, 'export', 'report', c.body.key, r.rows + ' سجل');
+  return r;
+}));
+R('POST', '/api/report/pack', fin(c => {
+  const r = DOC.exportPack(c.body.keys, c.body);
+  audit(c.user, 'export', 'report-pack', (c.body.keys || []).join(','), r.sheets + ' ورقة');
+  return r;
+}));
+
+/* صفحة الطباعة: المتصفح يحوّلها PDF — التوكن في الرابط لأن الطباعة
+   تُفتح في نافذة جديدة لا تحمل ترويسة المصادقة. */
+R('GET', '/api/report/print', c => {
+  const u = c.user || userFromToken(c.query.token);
+  if (!u) throw new Error('الجلسة منتهية — سجّل الدخول');
+  if (!can(u, 'read', 'journals') && !can(u, 'read', '*'))
+    throw new Error('لا تملك صلاحية عرض التقارير');
+  audit(u, 'print', 'report', c.query.key, '');
+  return { __html: DOC.printable(c.query.key, c.query) };
+}, { open: true });
+
+R('GET', '/api/audit/trail', c => {
+  if (c.user.role !== 'admin' && !can(c.user, 'read', '*'))
+    throw new Error('سجل التدقيق للمالك والمحاسب فقط');
+  return DOC.auditTrail(c.query);
+});
+R('GET', '/api/audit/entity', c => {
+  if (!can(c.user, 'read', entRes(c.query.entity)) && !can(c.user, 'read', '*'))
+    throw new Error('لا تملك صلاحية عرض أثر هذا السجل');
+  return DOC.entityTrail(c.query.entity, Number(c.query.entity_id));
+});
+R('GET', '/api/audit/stats', c => {
+  if (c.user.role !== 'admin') throw new Error('المالك فقط');
+  return DOC.auditStats(c.query.days);
+});
+
 const CRUD = {
   partners: ['kind','name','vat','contact','phone','email','city','terms','trade','rating','ontime'],
   projects: ['code','name','customer_id','trade','ctype','value','sdate','ddate','progress','pm_id','status'],
   materials: ['code','name','spec','trade','unit','cost','minq'],
-  employees: ['code','name','job','dept','ptype','basic','housing','transport','site','hired','phone','nid','iban','status','cost_rate'],
+  employees: ['code','name','job','dept','ptype','basic','housing','transport','site','hired','phone','nid','iban','status','cost_rate',
+              'nationality','iqama','iqama_exp','passport','passport_exp','license','license_exp','contract_exp','bank','gosi_sub','leave_ent'],
   tasks: ['project_id','name','trade','zone','phase','assignee','exec','progress','status','ddate'],
 };
 Object.entries(CRUD).forEach(([t, cols]) => R('POST', '/api/' + t + '/save', c => {
@@ -695,6 +1015,9 @@ const server = http.createServer((req, res) => {
       try {
         const out = route.h({ user, body, query: Object.fromEntries(u.searchParams),
                               token: (req.headers.authorization || '').replace(/^Bearer\s+/i, '') });
+        /* بعض المسارات تُرجع صفحة للطباعة بدل JSON */
+        if (out && typeof out === 'object' && typeof out.__html === 'string')
+          return send(res, 200, out.__html, 'text/html; charset=utf-8');
         send(res, 200, out === undefined ? { ok: true } : out);
       } catch (e) { send(res, 400, { error: e.message }); }
     });

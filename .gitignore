@@ -1,5 +1,7 @@
 erp.db
 *.db
+*.db-shm
+*.db-wal
 server.log
 node_modules/
 .env

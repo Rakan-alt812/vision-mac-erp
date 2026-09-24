@@ -187,6 +187,157 @@ CREATE TABLE IF NOT EXISTS mrlines(
 );
 
 CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT);
+
+/* ═════════ v1.2 — العقود والمستخلصات والمحتجزات ═════════ */
+CREATE TABLE IF NOT EXISTS contracts(
+  id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL UNIQUE,
+  retention_pct REAL DEFAULT 0.05, retention_cap REAL DEFAULT 0,
+  advance_pct REAL DEFAULT 0, advance_amount REAL DEFAULT 0,
+  advance_recovered REAL DEFAULT 0, advance_recovery_pct REAL DEFAULT 0,
+  original_value REAL DEFAULT 0, vat_rate REAL DEFAULT 0.15,
+  sdate TEXT, ddate TEXT, status TEXT DEFAULT 'ساري', notes TEXT,
+  FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS citems(
+  id INTEGER PRIMARY KEY, contract_id INTEGER NOT NULL, vo_id INTEGER,
+  item TEXT, descr TEXT NOT NULL, trade TEXT, unit TEXT,
+  qty REAL DEFAULT 0, price REAL DEFAULT 0, sort INTEGER DEFAULT 0,
+  FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ix_ci_ct ON citems(contract_id);
+
+CREATE TABLE IF NOT EXISTS ipcs(
+  id INTEGER PRIMARY KEY, code TEXT UNIQUE NOT NULL, contract_id INTEGER NOT NULL,
+  project_id INTEGER NOT NULL, seq INTEGER NOT NULL,
+  from_date TEXT, to_date TEXT, status TEXT DEFAULT 'مسودة',
+  gross REAL DEFAULT 0, prev_gross REAL DEFAULT 0, period_gross REAL DEFAULT 0,
+  retention REAL DEFAULT 0, advance_deduct REAL DEFAULT 0, other_deduct REAL DEFAULT 0,
+  net REAL DEFAULT 0, vat REAL DEFAULT 0, total REAL DEFAULT 0,
+  journal_id INTEGER, invoice_id INTEGER,
+  submitted_by INTEGER, submitted_at TEXT, approved_by INTEGER, approved_at TEXT,
+  notes TEXT,
+  FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS ipclines(
+  id INTEGER PRIMARY KEY, ipc_id INTEGER NOT NULL, citem_id INTEGER,
+  descr TEXT, unit TEXT, qty_total REAL DEFAULT 0, qty_prev REAL DEFAULT 0,
+  qty_this REAL DEFAULT 0, price REAL DEFAULT 0, amount REAL DEFAULT 0,
+  FOREIGN KEY(ipc_id) REFERENCES ipcs(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ix_il_ipc ON ipclines(ipc_id);
+
+CREATE TABLE IF NOT EXISTS vos(
+  id INTEGER PRIMARY KEY, code TEXT UNIQUE NOT NULL, contract_id INTEGER NOT NULL,
+  project_id INTEGER NOT NULL, vdate TEXT, descr TEXT NOT NULL, reason TEXT,
+  amount REAL DEFAULT 0, status TEXT DEFAULT 'مسودة',
+  requested_by INTEGER, approved_by INTEGER, approved_at TEXT, note TEXT,
+  FOREIGN KEY(contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS volines(
+  id INTEGER PRIMARY KEY, vo_id INTEGER NOT NULL, item TEXT, descr TEXT,
+  trade TEXT, unit TEXT, qty REAL DEFAULT 0, price REAL DEFAULT 0,
+  FOREIGN KEY(vo_id) REFERENCES vos(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS subcerts(
+  id INTEGER PRIMARY KEY, code TEXT UNIQUE NOT NULL, project_id INTEGER NOT NULL,
+  vendor_id INTEGER NOT NULL, seq INTEGER DEFAULT 1, from_date TEXT, to_date TEXT,
+  gross REAL DEFAULT 0, prev_gross REAL DEFAULT 0, period_gross REAL DEFAULT 0,
+  retention_pct REAL DEFAULT 0.05, retention REAL DEFAULT 0,
+  advance_deduct REAL DEFAULT 0, other_deduct REAL DEFAULT 0,
+  net REAL DEFAULT 0, vat REAL DEFAULT 0, total REAL DEFAULT 0,
+  status TEXT DEFAULT 'مسودة', journal_id INTEGER,
+  submitted_by INTEGER, approved_by INTEGER, approved_at TEXT, notes TEXT,
+  FOREIGN KEY(vendor_id) REFERENCES partners(id)
+);
+CREATE TABLE IF NOT EXISTS subcertlines(
+  id INTEGER PRIMARY KEY, subcert_id INTEGER NOT NULL, descr TEXT,
+  unit TEXT, qty REAL DEFAULT 0, price REAL DEFAULT 0, amount REAL DEFAULT 0,
+  FOREIGN KEY(subcert_id) REFERENCES subcerts(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS retreleases(
+  id INTEGER PRIMARY KEY, kind TEXT NOT NULL, project_id INTEGER,
+  partner_id INTEGER, rdate TEXT, amount REAL NOT NULL,
+  journal_id INTEGER, note TEXT, created_by INTEGER
+);
+
+/* ═════════ v1.2 — الرواتب الكاملة ═════════ */
+CREATE TABLE IF NOT EXISTS advances(
+  id INTEGER PRIMARY KEY, code TEXT UNIQUE, employee_id INTEGER NOT NULL,
+  adate TEXT, amount REAL NOT NULL, months INTEGER DEFAULT 1,
+  monthly REAL DEFAULT 0, recovered REAL DEFAULT 0,
+  status TEXT DEFAULT 'معلق', approved_by INTEGER, approved_at TEXT,
+  journal_id INTEGER, note TEXT, created_by INTEGER,
+  FOREIGN KEY(employee_id) REFERENCES employees(id)
+);
+CREATE TABLE IF NOT EXISTS leaves(
+  id INTEGER PRIMARY KEY, code TEXT UNIQUE, employee_id INTEGER NOT NULL,
+  kind TEXT DEFAULT 'سنوية', from_date TEXT, to_date TEXT, days REAL DEFAULT 0,
+  paid INTEGER DEFAULT 1, status TEXT DEFAULT 'معلق',
+  requested_at TEXT, approved_by INTEGER, approved_at TEXT, note TEXT,
+  FOREIGN KEY(employee_id) REFERENCES employees(id)
+);
+CREATE TABLE IF NOT EXISTS payitems(
+  id INTEGER PRIMARY KEY, payrun_id INTEGER NOT NULL, employee_id INTEGER NOT NULL,
+  kind TEXT NOT NULL, descr TEXT, hours REAL DEFAULT 0, amount REAL DEFAULT 0,
+  FOREIGN KEY(payrun_id) REFERENCES payruns(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS wpsfiles(
+  id INTEGER PRIMARY KEY, payrun_id INTEGER NOT NULL, generated_at TEXT,
+  bank TEXT, nlines INTEGER, total REAL, content TEXT, created_by INTEGER,
+  FOREIGN KEY(payrun_id) REFERENCES payruns(id) ON DELETE CASCADE
+);
+
+/* ═════════ v1.2 — المشتريات المتقدمة ═════════ */
+CREATE TABLE IF NOT EXISTS rfqs(
+  id INTEGER PRIMARY KEY, code TEXT UNIQUE NOT NULL, project_id INTEGER,
+  rdate TEXT, deadline TEXT, descr TEXT, status TEXT DEFAULT 'مسودة',
+  awarded_vendor INTEGER, awarded_at TEXT, created_by INTEGER
+);
+CREATE TABLE IF NOT EXISTS rfqlines(
+  id INTEGER PRIMARY KEY, rfq_id INTEGER NOT NULL, material_id INTEGER,
+  descr TEXT, unit TEXT, qty REAL DEFAULT 0, sort INTEGER DEFAULT 0,
+  FOREIGN KEY(rfq_id) REFERENCES rfqs(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS rfqvendors(
+  id INTEGER PRIMARY KEY, rfq_id INTEGER NOT NULL, vendor_id INTEGER NOT NULL,
+  status TEXT DEFAULT 'مُرسل', sent_at TEXT, replied_at TEXT,
+  total REAL DEFAULT 0, lead_days INTEGER, terms TEXT, notes TEXT,
+  selected INTEGER DEFAULT 0,
+  FOREIGN KEY(rfq_id) REFERENCES rfqs(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS rfqquotes(
+  id INTEGER PRIMARY KEY, rfqvendor_id INTEGER NOT NULL, rfqline_id INTEGER NOT NULL,
+  price REAL DEFAULT 0, note TEXT,
+  FOREIGN KEY(rfqvendor_id) REFERENCES rfqvendors(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS vendorprices(
+  id INTEGER PRIMARY KEY, vendor_id INTEGER NOT NULL, material_id INTEGER NOT NULL,
+  price REAL NOT NULL, valid_from TEXT, valid_to TEXT, moq REAL DEFAULT 0,
+  lead_days INTEGER, note TEXT
+);
+CREATE TABLE IF NOT EXISTS bills(
+  id INTEGER PRIMARY KEY, code TEXT UNIQUE NOT NULL, vendor_id INTEGER NOT NULL,
+  po_id INTEGER, vendor_ref TEXT, bdate TEXT, ddate TEXT,
+  net REAL DEFAULT 0, vat REAL DEFAULT 0, total REAL DEFAULT 0,
+  status TEXT DEFAULT 'مسودة', match_status TEXT DEFAULT 'لم تُطابق',
+  match_note TEXT, journal_id INTEGER, created_by INTEGER,
+  FOREIGN KEY(vendor_id) REFERENCES partners(id)
+);
+CREATE TABLE IF NOT EXISTS billlines(
+  id INTEGER PRIMARY KEY, bill_id INTEGER NOT NULL, poline_id INTEGER,
+  descr TEXT, qty REAL DEFAULT 0, price REAL DEFAULT 0,
+  FOREIGN KEY(bill_id) REFERENCES bills(id) ON DELETE CASCADE
+);
+
+/* ═════════ v1.2 — المستندات ═════════ */
+CREATE TABLE IF NOT EXISTS attachments(
+  id INTEGER PRIMARY KEY, entity TEXT NOT NULL, entity_id INTEGER NOT NULL,
+  filename TEXT NOT NULL, mime TEXT, size INTEGER, data BLOB,
+  note TEXT, uploaded_by INTEGER, uploaded_at TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_att ON attachments(entity, entity_id);
 `);
 
 /* Migration: add columns to databases created before this version */
@@ -195,6 +346,35 @@ try { db.exec('ALTER TABLE users ADD COLUMN pw_changed TEXT'); } catch (e) {}
 try { db.exec('ALTER TABLE stock ADD COLUMN avg_cost REAL DEFAULT 0'); } catch (e) {}
 try { db.exec('ALTER TABLE tasks ADD COLUMN sdate TEXT'); } catch (e) {}
 try { db.exec('ALTER TABLE tasks ADD COLUMN weight REAL DEFAULT 1'); } catch (e) {}
+
+/* v1.2 migrations — employee documents, leave balance, richer payslips */
+[
+  'ALTER TABLE employees ADD COLUMN nationality TEXT',
+  'ALTER TABLE employees ADD COLUMN iqama TEXT',
+  'ALTER TABLE employees ADD COLUMN iqama_exp TEXT',
+  'ALTER TABLE employees ADD COLUMN passport TEXT',
+  'ALTER TABLE employees ADD COLUMN passport_exp TEXT',
+  'ALTER TABLE employees ADD COLUMN license TEXT',
+  'ALTER TABLE employees ADD COLUMN license_exp TEXT',
+  'ALTER TABLE employees ADD COLUMN contract_exp TEXT',
+  'ALTER TABLE employees ADD COLUMN bank TEXT',
+  'ALTER TABLE employees ADD COLUMN gosi_sub INTEGER DEFAULT 1',
+  'ALTER TABLE employees ADD COLUMN leave_ent REAL DEFAULT 21',
+  'ALTER TABLE employees ADD COLUMN leave_taken REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN basic REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN housing REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN transport REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN site REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN ot_hours REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN ot_amount REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN bonus REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN advance_deduct REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN unpaid_days REAL DEFAULT 0',
+  'ALTER TABLE payslips ADD COLUMN unpaid_amount REAL DEFAULT 0',
+  'ALTER TABLE payruns ADD COLUMN gross REAL DEFAULT 0',
+  'ALTER TABLE payruns ADD COLUMN net REAL DEFAULT 0',
+  'ALTER TABLE projects ADD COLUMN retention_held REAL DEFAULT 0',
+].forEach(sql => { try { db.exec(sql); } catch (e) {} });
 
 /* ══════════════════════ HELPERS ══════════════════════ */
 const q = (sql, ...p) => db.prepare(sql).all(...p);
@@ -213,20 +393,27 @@ function seeded() {
 const COA = [
   ['1100', 'النقد والبنوك', 'asset', 'D'],
   ['1200', 'الذمم المدينة — العملاء', 'asset', 'D'],
+  ['1250', 'محتجزات لدى العملاء', 'asset', 'D'],
+  ['1280', 'دفعات مقدمة للموردين والمقاولين', 'asset', 'D'],
   ['1300', 'المخزون والمواد', 'asset', 'D'],
+  ['1150', 'سلف الموظفين', 'asset', 'D'],
   ['1400', 'ضريبة المدخلات', 'asset', 'D'],
   ['1600', 'المعدات والأصول الثابتة', 'asset', 'D'],
   ['2100', 'الذمم الدائنة — الموردون', 'liability', 'C'],
+  ['2150', 'محتجزات مقاولي الباطن', 'liability', 'C'],
   ['2200', 'ضريبة المخرجات المستحقة', 'liability', 'C'],
   ['2300', 'رواتب مستحقة الدفع', 'liability', 'C'],
+  ['2310', 'مخصص إجازات مستحقة', 'liability', 'C'],
   ['2400', 'اشتراكات GOSI مستحقة', 'liability', 'C'],
   ['2500', 'مخصص نهاية الخدمة', 'liability', 'C'],
+  ['2600', 'دفعات مقدمة من العملاء', 'liability', 'C'],
   ['3100', 'رأس المال', 'equity', 'C'],
   ['3200', 'الأرباح المبقاة', 'equity', 'C'],
   ['4110', 'إيرادات الأعمال الكهربائية', 'income', 'C'],
   ['4120', 'إيرادات الأعمال الميكانيكية', 'income', 'C'],
   ['4130', 'إيرادات أعمال السباكة', 'income', 'C'],
   ['4190', 'إيرادات أعمال MEP متكاملة', 'income', 'C'],
+  ['4200', 'استردادات وخصومات على المقاولين', 'income', 'C'],
   ['5100', 'تكلفة المواد والمعدات', 'expense', 'D'],
   ['5200', 'الرواتب والأجور', 'expense', 'D'],
   ['5300', 'مدفوعات المقاولين الفرعيين', 'expense', 'D'],
@@ -235,11 +422,21 @@ const COA = [
   ['5600', 'مصاريف بنكية', 'expense', 'D'],
 ];
 
-function seed() {
-  if (seeded()) return;
-
+/* Accounts and default settings are re-ensured on EVERY startup, not only on
+   first seed — otherwise an upgraded database would never get the v1.2 accounts. */
+function ensureAccounts() {
   const insAcc = db.prepare('INSERT OR IGNORE INTO accounts(code,name,type,normal) VALUES(?,?,?,?)');
   COA.forEach(a => insAcc.run(...a));
+  const D = db.prepare('INSERT OR IGNORE INTO settings(k,v) VALUES(?,?)');
+  [['retention_pct', '0.05'], ['sub_retention_pct', '0.05'],
+   ['overtime_rate', '1.5'], ['leave_days', '21'],
+   ['wps_bank', 'الأهلي'], ['wps_employer_id', '1-2345678'],
+   ['doc_expiry_warn', '60'], ['max_upload_mb', '5']].forEach(([k, v]) => D.run(k, v));
+}
+ensureAccounts();
+
+function seed() {
+  if (seeded()) return;
 
   const S = db.prepare('INSERT OR REPLACE INTO settings(k,v) VALUES(?,?)');
   S.run('company_name', 'VISION — MAC');
@@ -330,4 +527,4 @@ function seed() {
   return true;
 }
 
-module.exports = { db, q, get1, run, hashPw, seed, seeded, COA, DB_PATH };
+module.exports = { db, q, get1, run, hashPw, seed, seeded, ensureAccounts, COA, DB_PATH };
